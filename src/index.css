@@ -1,0 +1,36 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+
+/* Custom styles */
+.header {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header__search {
+  max-width: 400px;
+}
+
+.project-card {
+  transition: transform 0.2s;
+}
+
+.project-card:hover {
+  transform: translateY(-4px);
+}
+
+.project-card__image {
+  height: 200px;
+  object-fit: cover;
+}
+
+.project-card__description {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .projects-grid {
+    grid-template-columns: repeat(1, 1fr) !important;
+  }
+}
