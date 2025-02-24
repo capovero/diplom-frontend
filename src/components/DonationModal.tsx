@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Form, Button } from 'react-bootstrap';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
+import { useTheme } from '../context/ThemeContext';
 
 interface DonationModalProps {
     show: boolean;
@@ -22,9 +23,11 @@ export const DonationModal: React.FC<DonationModalProps> = ({
                                                                 projectTitle,
                                                                 onDonate,
                                                             }) => {
+    const { theme } = useTheme();
+
     return (
         <Modal show={show} onHide={onHide} centered>
-            <Modal.Header closeButton>
+            <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
                 <Modal.Title>Support "{projectTitle}"</Modal.Title>
             </Modal.Header>
             <Formik
@@ -51,7 +54,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
                       isSubmitting,
                   }) => (
                     <Form onSubmit={handleSubmit}>
-                        <Modal.Body>
+                        <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Donation Amount ($)</Form.Label>
                                 <Form.Control
@@ -64,14 +67,15 @@ export const DonationModal: React.FC<DonationModalProps> = ({
                                     placeholder="Enter amount"
                                     min="1"
                                     step="1"
+                                    className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {errors.amount}
                                 </Form.Control.Feedback>
                             </Form.Group>
                         </Modal.Body>
-                        <Modal.Footer>
-                            <Button variant="secondary" onClick={onHide}>
+                        <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
+                            <Button variant={theme === 'dark' ? 'outline-light' : 'secondary'} onClick={onHide}>
                                 Cancel
                             </Button>
                             <Button type="submit" variant="primary" disabled={isSubmitting}>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Badge, ProgressBar, Button, Form, Card, Carousel } from 'react-bootstrap';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSpring, animated } from 'react-spring';
 import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +27,7 @@ interface Project {
   category: string;
   averageRating: number;
   creator: {
+    id: string;
     name: string;
     avatar: string;
   };
@@ -105,6 +106,7 @@ export const ProjectPage: React.FC = () => {
       category: 'Web Development',
       averageRating: 4.5,
       creator: {
+        id: 'creator123',
         name: 'Alex Johnson',
         avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
       },
@@ -371,15 +373,13 @@ export const ProjectPage: React.FC = () => {
                   <Card.Body>
                     <h5 className="card-title mb-4">Project Creator</h5>
                     <div className="d-flex align-items-center mb-3">
-                      <img
-                          src={project.creator.avatar}
-                          alt={project.creator.name}
-                          className="rounded-circle me-3"
-                          width="48"
-                          height="48"
-                      />
                       <div>
-                        <strong className="d-block">{project.creator.name}</strong>
+                        <Link
+                            to={`/profile/${project.creator.id}`}
+                            className="text-decoration-none"
+                        >
+                          <strong className="d-block text-dark">{project.creator.name}</strong>
+                        </Link>
                         <small className="text-muted">Project Owner</small>
                       </div>
                     </div>

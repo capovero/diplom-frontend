@@ -25,7 +25,7 @@ export const Home: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const projectsPerPage = 10;
+  const projectsPerPage = 6; // Changed to 6 for better grid layout
 
   useEffect(() => {
     setCategories(mockCategories);
