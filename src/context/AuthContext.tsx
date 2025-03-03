@@ -12,6 +12,8 @@ interface AuthContextType {
   loading: boolean;
   login: (identifier: string, password: string) => Promise<void>;
   logout: () => void;
+  mockLogin: () => void;
+  isMockUser: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -19,14 +21,15 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMockUser, setIsMockUser] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       axios.get('/api/user')
-        .then(response => setUser(response.data))
-        .catch(() => localStorage.removeItem('token'))
-        .finally(() => setLoading(false));
+          .then(response => setUser(response.data))
+          .catch(() => localStorage.removeItem('token'))
+          .finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
@@ -41,12 +44,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    setIsMockUser(false);
+  };
+
+  const mockLogin = () => {
+    const mockUser = {
+      id: 'mock-user-123',
+      name: 'Test User',
+      email: 'test@example.com'
+    };
+    setUser(mockUser);
+    setIsMockUser(true);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {children}
-    </AuthContext.Provider>
+      <AuthContext.Provider value={{ user, loading, login, logout, mockLogin, isMockUser }}>
+        {children}
+      </AuthContext.Provider>
   );
 };
 

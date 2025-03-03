@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Button } from 'react-bootstrap';
+import { Container, Row, Col, Button, Card } from 'react-bootstrap';
 import { ProjectCard } from '../components/ProjectCard';
 import { Pagination } from '../components/Pagination';
 import { Footer } from '../components/Footer';
+import { CrowdfundingInfo } from '../components/CrowdfundingInfo';
 import { mockProjects, mockCategories } from '../mockData';
+import { useTheme } from '../context/ThemeContext';
 
 interface Project {
   id: string;
@@ -25,6 +27,8 @@ export const Home: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [showInfo, setShowInfo] = useState(false);
+  const { theme } = useTheme();
   const projectsPerPage = 6; // Changed to 6 for better grid layout
 
   useEffect(() => {
@@ -54,6 +58,29 @@ export const Home: React.FC = () => {
       <div className="d-flex flex-column min-vh-100">
         <main className="flex-grow-1">
           <Container className="py-5">
+            <Row className="mb-5">
+              <Col>
+                <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+                  <Card.Body>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h2 className="mb-0">Welcome to ProjectHub</h2>
+                      <Button
+                          variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+                          onClick={() => setShowInfo(!showInfo)}
+                      >
+                        {showInfo ? 'Hide Info' : 'About Crowdfunding'}
+                      </Button>
+                    </div>
+                    <p className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
+                      Discover innovative projects and support creators in bringing their ideas to life.
+                    </p>
+
+                    {showInfo && <CrowdfundingInfo />}
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+
             <div className="d-flex flex-wrap gap-2 mb-4">
               <Button
                   variant={selectedCategory === '' ? 'primary' : 'outline-primary'}

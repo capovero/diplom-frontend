@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -8,6 +7,7 @@ import { ProjectPage } from './pages/ProjectPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { CreateProjectPage } from './pages/CreateProjectPage';
 
 function App() {
     return (
@@ -22,6 +22,7 @@ function App() {
                             <Route path="/profile/:userId" element={<ProfilePage />} />
                             <Route path="/login" element={<LoginPage />} />
                             <Route path="/register" element={<RegisterPage />} />
+                            <Route path="/create-project" element={<CreateProjectPage />} />
                         </Routes>
                     </div>
                 </AuthProvider>
