@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Badge, ProgressBar, Button, Form, Card, Carousel, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Badge, ProgressBar, Button, Form, Card, Carousel, Modal, Tab, Nav, Table } from 'react-bootstrap';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSpring, animated } from 'react-spring';
-import { Star, ChevronLeft, ChevronRight, Share2 } from 'lucide-react';
+import { Star, ChevronLeft, ChevronRight, Share2, Trash2, Edit } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -11,73 +11,59 @@ import { SocialShareButtons } from '../components/SocialShareButtons';
 import { Footer } from '../components/Footer';
 import { useTheme } from '../context/ThemeContext';
 
-interface Review {
-  id: string;
-  userId: string;
-  userName: string;
-  text: string;
-  rating: number;
-  createdAt: string;
-}
-
 interface Project {
   id: string;
   title: string;
   description: string;
   images: string[];
   goalAmount: number;
-  collectedAmount: number;
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Active' | 'Completed';
-  category: string;
-  averageRating: number;
+  currentAmount: number;
   creator: {
     id: string;
     name: string;
-    avatar: string;
   };
+  category: string;
+  status: string;
   createdAt: string;
-  updatedAt: string;
+  rating: number;
+  totalReviews: number;
 }
 
-const reviewSchema = Yup.object().shape({
+interface ProjectUpdate {
+  id: string;
+  text: string;
+  createdAt: string;
+  createdBy: {
+    id: string;
+    name: string;
+    role: 'USER' | 'ADMIN';
+  };
+}
+
+interface Review {
+  id: string;
+  rating: number;
+  comment: string;
+  userId: string;
+  userName: string;
+  createdAt: string;
+}
+
+const updateSchema = Yup.object().shape({
   text: Yup.string()
-      .min(10, 'Review must be at least 10 characters')
-      .required('Review text is required'),
-  rating: Yup.number()
-      .min(1, 'Rating must be at least 1')
-      .max(5, 'Rating must not exceed 5')
-      .required('Rating is required')
+    .min(10, 'Update must be at least 10 characters')
+    .required('Update text is required'),
 });
 
-const StarRating: React.FC<{ rating: number, onSelect?: (rating: number) => void, interactive?: boolean }> = ({
-                                                                                                                rating,
-                                                                                                                onSelect,
-                                                                                                                interactive = false
-                                                                                                              }) => {
-  const [hover, setHover] = useState(0);
-  const { theme } = useTheme();
-
-  const renderStar = (position: number) => {
-    const filled = hover > 0 ? position <= hover : position <= rating;
-    return (
-        <Star
-            key={position}
-            className={`${filled ? 'text-warning' : theme === 'dark' ? 'text-light-50' : 'text-muted'} ${interactive ? 'cursor-pointer' : ''}`}
-            size={20}
-            fill={filled ? 'currentColor' : 'none'}
-            onClick={() => interactive && onSelect?.(position)}
-            onMouseEnter={() => interactive && setHover(position)}
-            onMouseLeave={() => interactive && setHover(0)}
-        />
-    );
-  };
-
-  return (
-      <div className="d-flex gap-1">
-        {[1, 2, 3, 4, 5].map(pos => renderStar(pos))}
-      </div>
-  );
-};
+const reviewSchema = Yup.object().shape({
+  rating: Yup.number()
+    .min(1, 'Rating must be at least 1')
+    .max(5, 'Rating cannot be more than 5')
+    .required('Rating is required'),
+  comment: Yup.string()
+    .min(10, 'Review must be at least 10 characters')
+    .required('Review text is required'),
+});
 
 export const ProjectPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -85,404 +71,704 @@ export const ProjectPage: React.FC = () => {
   const { user } = useAuth();
   const { theme } = useTheme();
   const [project, setProject] = useState<Project | null>(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [showDonateModal, setShowDonateModal] = useState(false);
+  const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [editingUpdate, setEditingUpdate] = useState<ProjectUpdate | null>(null);
+  const [donations, setDonations] = useState<any[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [activeImage, setActiveImage] = useState(0);
-  const [showDonationModal, setShowDonationModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
 
   const fadeIn = useSpring({
     from: { opacity: 0 },
     to: { opacity: 1 },
+    config: { duration: 300 }
   });
 
   useEffect(() => {
-    // Simulate API calls
-    const mockProject = {
-      id: '1',
+    // Simulate fetching project data
+    const mockProject: Project = {
+      id: id || '1',
       title: 'Modern E-commerce Platform',
-      description: 'A full-featured e-commerce platform built with React and Node.js, featuring real-time updates, cart management, and secure payments. Our platform provides a seamless shopping experience with advanced features like real-time inventory tracking, personalized recommendations, and secure payment processing.',
+      description: 'A full-featured e-commerce platform built with React and Node.js, featuring real-time updates, cart management, and secure payments.',
       images: [
         'https://images.unsplash.com/photo-1661956602116-aa6865609028?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+        'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
       ],
       goalAmount: 50000,
-      collectedAmount: 35000,
-      status: 'Active' as const,
-      category: 'Web Development',
-      averageRating: 4.5,
+      currentAmount: 25000,
       creator: {
-        id: 'creator123',
-        name: 'Alex Johnson',
-        avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
+        id: 'user-1',
+        name: 'Alex Johnson'
       },
+      category: 'Web Development',
+      status: 'Active',
       createdAt: '2024-02-15T10:00:00Z',
-      updatedAt: '2024-02-20T15:30:00Z'
+      rating: 4.5,
+      totalReviews: 12
     };
 
-    const mockReviews = [
+    const mockDonations = [
       {
-        id: '1',
-        userId: '123',
-        userName: 'John Doe',
-        text: 'Great project! The implementation is very professional.',
-        rating: 5,
-        createdAt: '2024-02-18T10:00:00Z'
+        id: 'd1',
+        amount: 100,
+        userId: 'user-2',
+        userName: 'Jane Smith',
+        createdAt: new Date().toISOString()
       },
       {
-        id: '2',
-        userId: '124',
+        id: 'd2',
+        amount: 50,
+        userId: 'user-3',
+        userName: 'Bob Johnson',
+        createdAt: new Date().toISOString()
+      }
+    ];
+
+    const mockReviews: Review[] = [
+      {
+        id: 'r1',
+        rating: 5,
+        comment: 'Excellent project! Very well thought out and executed.',
+        userId: 'user-2',
         userName: 'Jane Smith',
-        text: 'Impressive work on the features. Looking forward to the final release.',
+        createdAt: '2024-03-15T10:00:00Z'
+      },
+      {
+        id: 'r2',
         rating: 4,
-        createdAt: '2024-02-19T14:30:00Z'
+        comment: 'Great initiative, looking forward to the final product.',
+        userId: 'user-3',
+        userName: 'Bob Johnson',
+        createdAt: '2024-03-14T15:30:00Z'
       }
     ];
 
     setProject(mockProject);
+    setDonations(mockDonations);
     setReviews(mockReviews);
-    setLoading(false);
   }, [id]);
 
-  const handleSupport = () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    setShowDonationModal(true);
-  };
+  useEffect(() => {
+    // Simulate fetching updates
+    const mockUpdates: ProjectUpdate[] = [
+      {
+        id: '1',
+        text: 'Thanks everyone! We reached 50% of our goal!',
+        createdAt: '2024-04-27T10:00:00Z',
+        createdBy: {
+          id: 'creator123',
+          name: 'Alex Johnson',
+          role: 'USER'
+        }
+      },
+      {
+        id: '2',
+        text: 'Project development is going well. Here\'s our latest milestone.',
+        createdAt: '2024-04-25T15:30:00Z',
+        createdBy: {
+          id: 'admin1',
+          name: 'Admin',
+          role: 'ADMIN'
+        }
+      }
+    ];
+    setUpdates(mockUpdates);
+  }, []);
 
   const handleDonate = async (amount: number) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log(`Donated $${amount} to project ${id}`);
-    // In a real app, you would update the project's collected amount
+    try {
+      // Simulate API call
+      console.log('Processing donation:', amount);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update project's current amount
+      setProject(prev => prev ? {
+        ...prev,
+        currentAmount: prev.currentAmount + amount
+      } : null);
+      
+      setShowDonateModal(false);
+    } catch (error) {
+      console.error('Donation failed:', error);
+    }
   };
 
-  const handleReviewSubmit = async (values: { text: string; rating: number }, { resetForm }: any) => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    const newReview = {
+  const handleUpdateSubmit = async (values: { text: string }, { resetForm }: any) => {
+    const newUpdate = {
       id: Date.now().toString(),
-      userId: user.id,
-      userName: user.name,
       text: values.text,
-      rating: values.rating,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      createdBy: {
+        id: user?.id || '',
+        name: user?.name || '',
+        role: user?.role || 'USER'
+      }
     };
 
-    setReviews(prev => [newReview, ...prev]);
-    setShowReviewForm(false);
+    if (editingUpdate) {
+      setUpdates(prev => prev.map(update => 
+        update.id === editingUpdate.id ? { ...update, text: values.text } : update
+      ));
+    } else {
+      setUpdates(prev => [newUpdate, ...prev]);
+    }
+
+    setShowUpdateModal(false);
+    setEditingUpdate(null);
     resetForm();
   };
 
-  if (loading) {
-    return (
-        <Container className="py-5">
-          <div className="text-center">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        </Container>
-    );
-  }
+  const handleReviewSubmit = async (values: { rating: number; comment: string }, { resetForm }: any) => {
+    const newReview = {
+      id: Date.now().toString(),
+      ...values,
+      userId: user?.id || '',
+      userName: user?.name || '',
+      createdAt: new Date().toISOString()
+    };
+
+    if (editingReview) {
+      setReviews(prev => prev.map(review =>
+        review.id === editingReview.id ? { ...newReview, id: review.id } : review
+      ));
+    } else {
+      setReviews(prev => [newReview, ...prev]);
+    }
+
+    setShowReviewModal(false);
+    setEditingReview(null);
+    resetForm();
+  };
+
+  const handleDeleteUpdate = (updateId: string) => {
+    if (window.confirm('Are you sure you want to delete this update?')) {
+      setUpdates(prev => prev.filter(update => update.id !== updateId));
+    }
+  };
+
+  const handleDeleteReview = (reviewId: string) => {
+    if (window.confirm('Are you sure you want to delete this review?')) {
+      setReviews(prev => prev.filter(review => review.id !== reviewId));
+    }
+  };
+
+  const canManageUpdates = user?.role === 'ADMIN' || project?.creator?.id === user?.id;
+  const canManageReviews = user?.role === 'ADMIN';
+  const hasUserReviewed = reviews.some(review => review.userId === user?.id);
 
   if (!project) {
     return (
-        <Container className="py-5">
-          <div className="text-center">Project not found</div>
-        </Container>
+      <Container className="py-5">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </Container>
     );
   }
 
-  const progress = (project.collectedAmount / project.goalAmount) * 100;
+  const progress = (project.currentAmount / project.goalAmount) * 100;
 
   return (
-      <div className="d-flex flex-column min-vh-100">
-        <animated.div style={fadeIn} className="flex-grow-1">
-          <Container className="py-4">
-            <Row className="g-4">
-              <Col lg={7}>
-                <div className="position-relative">
+    <div className="d-flex flex-column min-vh-100">
+      <animated.div style={fadeIn} className="flex-grow-1">
+        <Container className="py-4">
+          <div className="mb-4">
+            <Button
+              variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+              onClick={() => navigate('/')}
+              className="mb-3"
+            >
+              <ChevronLeft size={20} className="me-1" />
+              Back to Projects
+            </Button>
+            <h1 className={theme === 'dark' ? 'text-light' : ''}>{project.title}</h1>
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <Badge bg="primary">{project.category}</Badge>
+              <Badge bg="success">{project.status}</Badge>
+              <div className="ms-2 d-flex align-items-center">
+                <Star className="text-warning" size={18} />
+                <span className="ms-1">{project.rating.toFixed(1)}</span>
+                <span className="ms-1 text-muted">({project.totalReviews} reviews)</span>
+              </div>
+            </div>
+          </div>
+
+          <Row className="g-4">
+            <Col lg={8}>
+              <Card className={`project-carousel mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
+                <Card.Body className="p-0">
                   <Carousel
-                      activeIndex={activeImage}
-                      onSelect={setActiveImage}
-                      interval={null}
-                      className="project-carousel"
-                      prevIcon={<ChevronLeft size={40} className="carousel-icon" />}
-                      nextIcon={<ChevronRight size={40} className="carousel-icon" />}
+                    activeIndex={currentImageIndex}
+                    onSelect={setCurrentImageIndex}
+                    interval={null}
+                    indicators={false}
                   >
                     {project.images.map((image, index) => (
-                        <Carousel.Item key={index}>
-                          <div className="project-image-container">
-                            <img
-                                src={image}
-                                alt={`${project.title} - Image ${index + 1}`}
-                                className="project-image"
-                            />
-                          </div>
-                        </Carousel.Item>
+                      <Carousel.Item key={index}>
+                        <div className="project-image-container">
+                          <img
+                            src={image}
+                            alt={`Project ${index + 1}`}
+                            className="project-image"
+                          />
+                        </div>
+                      </Carousel.Item>
                     ))}
                   </Carousel>
-
-                  <div className="image-thumbnails d-none d-md-flex">
+                  
+                  <div className="image-thumbnails px-3 pb-3">
                     {project.images.map((image, index) => (
-                        <img
-                            key={index}
-                            src={image}
-                            alt={`Thumbnail ${index + 1}`}
-                            className={`thumbnail-image ${activeImage === index ? 'active' : ''}`}
-                            onClick={() => setActiveImage(index)}
-                        />
+                      <img
+                        key={index}
+                        src={image}
+                        alt={`Thumbnail ${index + 1}`}
+                        className={`thumbnail-image ${index === currentImageIndex ? 'active' : ''}`}
+                        onClick={() => setCurrentImageIndex(index)}
+                      />
                     ))}
                   </div>
-                </div>
+                </Card.Body>
+              </Card>
 
-                <div className="project-content mt-4">
-                  <div className="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                      <h1 className="h2 mb-2">{project.title}</h1>
-                      <div className="d-flex align-items-center gap-2 flex-wrap">
-                        <Badge bg="primary">{project.category}</Badge>
-                        <Badge bg="secondary">{project.status}</Badge>
-                        <div className="d-flex align-items-center">
-                          <StarRating rating={project.averageRating} />
-                          <span className={`ms-2 ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>({project.averageRating.toFixed(1)})</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+              <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
+                <Card.Body>
+                  <h4 className="mb-3">About This Project</h4>
+                  <p>{project.description}</p>
+                </Card.Body>
+              </Card>
+            </Col>
 
-                  <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
-                    <Card.Body>
-                      <h5 className="mb-3">Funding Progress</h5>
-                      <ProgressBar
-                          now={progress}
-                          label={`${progress.toFixed(1)}%`}
-                          className="mb-2"
-                      />
-                      <div className="d-flex justify-content-between">
-                        <span className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>Collected: ${project.collectedAmount.toLocaleString()}</span>
-                        <span className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>Goal: ${project.goalAmount.toLocaleString()}</span>
-                      </div>
-                    </Card.Body>
-                  </Card>
+            <Col lg={4}>
+              <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
+                <Card.Body>
+                  <h4 className="mb-3">${project.currentAmount.toLocaleString()}</h4>
+                  <p className={`mb-1 ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
+                    raised of ${project.goalAmount.toLocaleString()} goal
+                  </p>
+                  <ProgressBar now={progress} className="mb-4" />
+                  
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="w-100 mb-3"
+                    onClick={() => setShowDonateModal(true)}
+                  >
+                    Support This Project
+                  </Button>
+                  
+                  <SocialShareButtons
+                    projectId={project.id}
+                    projectTitle={project.title}
+                  />
+                </Card.Body>
+              </Card>
 
-                  <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
-                    <Card.Body>
-                      <h5 className="mb-3">About Project</h5>
-                      <p className={ theme === 'dark' ? 'text-light-50' : 'text-muted'}>{project.description}</p>
-                    </Card.Body>
-                  </Card>
+              <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+                <Card.Body>
+                  <h5 className="card-title">Project Creator</h5>
+                  <p className="mb-2">{project.creator.name}</p>
+                  <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
+                    Created on {new Date(project.createdAt).toLocaleDateString()}
+                  </small>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
 
-                  <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-                    <Card.Body>
-                      <div className="d-flex justify-content-between align-items-center mb-4">
-                        <h5 className="mb-0">Reviews</h5>
-                        {!showReviewForm && (
-                            <Button
-                                variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
-                                size="sm"
-                                onClick={() => user ? setShowReviewForm(true) : navigate('/login')}
-                            >
-                              Write a Review
-                            </Button>
-                        )}
-                      </div>
+          <Tab.Container defaultActiveKey="details">
+            <Nav variant="tabs" className="mb-4">
+              <Nav.Item>
+                <Nav.Link eventKey="details" className={theme === 'dark' ? 'text-light' : ''}>
+                  Details
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="updates" className={theme === 'dark' ? 'text-light' : ''}>
+                  Updates
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="reviews" className={theme === 'dark' ? 'text-light' : ''}>
+                  Reviews
+                </Nav.Link>
+              </Nav.Item>
+              {(user?.role === 'ADMIN' || project?.creator?.id === user?.id) && (
+                <Nav.Item>
+                  <Nav.Link eventKey="donations" className={theme === 'dark' ? 'text-light' : ''}>
+                    Donations
+                  </Nav.Link>
+                </Nav.Item>
+              )}
+            </Nav>
 
-                      {showReviewForm && (
-                          <Card className={`mb-4 border-primary border-opacity-25 ${theme === 'dark' ? 'bg-secondary-dark' : ''}`}>
-                            <Card.Body>
-                              <Formik
-                                  initialValues={{ text: '', rating: 5 }}
-                                  validationSchema={reviewSchema}
-                                  onSubmit={handleReviewSubmit}
-                              >
-                                {({
-                                    values,
-                                    errors,
-                                    touched,
-                                    handleChange,
-                                    handleBlur,
-                                    handleSubmit,
-                                    setFieldValue
-                                  }) => (
-                                    <Form onSubmit={handleSubmit as any}>
-                                      <Form.Group className="mb-3">
-                                        <Form.Label>Your Rating</Form.Label>
-                                        <div>
-                                          <StarRating
-                                              rating={values.rating}
-                                              onSelect={(rating) => setFieldValue('rating', rating)}
-                                              interactive
-                                          />
-                                        </div>
-                                      </Form.Group>
+            <Tab.Content>
+              <Tab.Pane eventKey="details">
+                <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+                  <Card.Body>
+                    <h5>Project Details</h5>
+                    <p>{project.description}</p>
+                  </Card.Body>
+                </Card>
+              </Tab.Pane>
 
-                                      <Form.Group className="mb-3">
-                                        <Form.Label>Your Review</Form.Label>
-                                        <Form.Control
-                                            as="textarea"
-                                            rows={3}
-                                            name="text"
-                                            value={values.text}
-                                            onChange={handleChange}
-                                            onBlur={handleBlur}
-                                            isInvalid={touched.text && !!errors.text}
-                                            className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
-                                        />
-                                        <Form.Control.Feedback type="invalid">
-                                          {errors.text}
-                                        </Form.Control.Feedback>
-                                      </Form.Group>
-
-                                      <div className="d-flex gap-2">
-                                        <Button type="submit" variant="primary" size="sm">
-                                          Submit Review
-                                        </Button>
-                                        <Button
-                                            variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
-                                            size="sm"
-                                            onClick={() => setShowReviewForm(false)}
-                                        >
-                                          Cancel
-                                        </Button>
-                                      </div>
-                                    </Form>
-                                )}
-                              </Formik>
-                            </Card.Body>
-                          </Card>
+              <Tab.Pane eventKey="updates">
+                <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+                  <Card.Body>
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                      <h5 className="mb-0">Project Updates</h5>
+                      {canManageUpdates && (
+                        <Button
+                          variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+                          onClick={() => {
+                            setEditingUpdate(null);
+                            setShowUpdateModal(true);
+                          }}
+                        >
+                          Add Update
+                        </Button>
                       )}
+                    </div>
 
-                      <div className="reviews-list">
-                        {reviews.map(review => (
-                            <Card key={review.id} className={`mb-3 border-0 border-bottom ${theme === 'dark' ? 'bg-dark border-secondary' : ''}`}>
-                              <Card.Body className="px-0">
-                                <div className="d-flex justify-content-between mb-2">
-                                  <div className="d-flex align-items-center gap-2">
-                                    <strong>{review.userName}</strong>
-                                    <StarRating rating={review.rating} />
-                                  </div>
-                                  <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                                    {new Date(review.createdAt).toLocaleDateString()}
-                                  </small>
+                    {updates.map(update => (
+                      <Card 
+                        key={update.id} 
+                        className={`mb-3 ${theme === 'dark' ? 'bg-secondary-dark border-secondary' : 'bg-light'}`}
+                      >
+                        <Card.Body>
+                          <div className="d-flex justify-content-between mb-2">
+                            <div>
+                              <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
+                                {new Date(update.createdAt).toLocaleDateString()} by {update.createdBy.name}
+                                {update.createdBy.role === 'ADMIN' && (
+                                  <Badge bg="warning" className="ms-2">Admin</Badge>
+                                )}
+                              </small>
+                            </div>
+                            {(user?.role === 'ADMIN' || (project?.creator?.id === user?.id && update.createdBy.id === user?.id)) && (
+                              <div>
+                                <Button
+                                  variant="link"
+                                  className="p-0 me-3"
+                                  onClick={() => {
+                                    setEditingUpdate(update);
+                                    setShowUpdateModal(true);
+                                  }}
+                                >
+                                  <Edit size={16} />
+                                </Button>
+                                <Button
+                                  variant="link"
+                                  className="p-0 text-danger"
+                                  onClick={() => handleDeleteUpdate(update.id)}
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                          <p className="mb-0">{update.text}</p>
+                        </Card.Body>
+                      </Card>
+                    ))}
+
+                    {updates.length === 0 && (
+                      <p className={`text-center ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
+                        No updates yet
+                      </p>
+                    )}
+                  </Card.Body>
+                </Card>
+              </Tab.Pane>
+
+              <Tab.Pane eventKey="reviews">
+                <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+                  <Card.Body>
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                      <h5 className="mb-0">Project Reviews</h5>
+                      {user && !hasUserReviewed && project?.creator?.id !== user?.id && (
+                        <Button
+                          variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+                          onClick={() => {
+                            setEditingReview(null);
+                            setShowReviewModal(true);
+                          }}
+                        >
+                          Write a Review
+                        </Button>
+                      )}
+                    </div>
+
+                    {reviews.map(review => (
+                      <Card 
+                        key={review.id} 
+                        className={`mb-3 ${theme === 'dark' ? 'bg-secondary-dark border-secondary' : 'bg-light'}`}
+                      >
+                        <Card.Body>
+                          <div className="d-flex justify-content-between mb-2">
+                            <div>
+                              <div className="d-flex align-items-center mb-1">
+                                <div className="me-2">
+                                  {Array.from({ length: 5 }).map((_, index) => (
+                                    <Star
+                                      key={index}
+                                      size={16}
+                                      className={index < review.rating ? 'text-warning' : 'text-muted'}
+                                      fill={index < review.rating ? 'currentColor' : 'none'}
+                                    />
+                                  ))}
                                 </div>
-                                <p className={`mb-0 ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>{review.text}</p>
-                              </Card.Body>
-                            </Card>
-                        ))}
-                      </div>
-                    </Card.Body>
-                  </Card>
-                </div>
-              </Col>
+                                <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
+                                  by {review.userName}
+                                </small>
+                              </div>
+                              <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
+                                {new Date(review.createdAt).toLocaleDateString()}
+                              </small>
+                            </div>
+                            {(canManageReviews || review.userId === user?.id) && (
+                              <div>
+                                {review.userId === user?.id && (
+                                  <Button
+                                    variant="link"
+                                    className="p-0 me-3"
+                                    onClick={() => {
+                                      setEditingReview(review);
+                                      setShowReviewModal(true);
+                                    }}
+                                  >
+                                    <Edit size={16} />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="link"
+                                  className="p-0 text-danger"
+                                  onClick={() => handleDeleteReview(review.id)}
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                          <p className="mb-0">{review.comment}</p>
+                        </Card.Body>
+                      </Card>
+                    ))}
 
-              <Col lg={5}>
-                <div className="sticky-top" style={{ top: '2rem' }}>
-                  <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
-                    <Card.Body>
-                      <h5 className="card-title mb-4">Project Creator</h5>
-                      <div className="d-flex align-items-center mb-3">
-                        <div>
-                          <Link
-                              to={`/profile/${project.creator.id}`}
-                              className={`text-decoration-none ${theme === 'dark' ? 'text-light' : 'text-dark'}`}
-                          >
-                            <strong className="d-block">{project.creator.name}</strong>
-                          </Link>
-                          <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>Project Owner</small>
-                        </div>
-                      </div>
+                    {reviews.length === 0 && (
+                      <p className={`text-center ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
+                        No reviews yet
+                      </p>
+                    )}
+                  </Card.Body>
+                </Card>
+              </Tab.Pane>
 
-                      <div className="mb-4">
-                        <div className="d-flex justify-content-between mb-2">
-                          <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>Created:</small>
-                          <small className={theme === 'dark' ? 'text-light' : 'text-dark'}>{new Date(project.createdAt).toLocaleDateString()}</small>
-                        </div>
-                        <div className="d-flex justify-content-between">
-                          <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>Last updated:</small>
-                          <small className={theme === 'dark' ? 'text-light' : 'text-dark'}>{new Date(project.updatedAt).toLocaleDateString()}</small>
-                        </div>
-                      </div>
-
-                      <div className="d-grid gap-2">
-                        <Button
-                            variant="primary"
-                            size="lg"
-                            onClick={handleSupport}
-                        >
-                          Support Project
-                        </Button>
-                        <Button
-                            variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
-                            onClick={() => setShowShareModal(true)}
-                        >
-                          <Share2 size={18} className="me-2" />
-                          Share Project
-                        </Button>
-                      </div>
-                    </Card.Body>
-                  </Card>
-
+              {(user?.role === 'ADMIN' || project?.creator?.id === user?.id) && (
+                <Tab.Pane eventKey="donations">
                   <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
                     <Card.Body>
-                      <h6 className="mb-3">Project Statistics</h6>
-                      <div className="d-flex justify-content-between mb-2">
-                        <span className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>Total Reviews</span>
-                        <strong className={theme === 'dark' ? 'text-light' : ''}>{reviews.length}</strong>
-                      </div>
-                      <div className="d-flex justify-content-between mb-2">
-                        <span className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>Average Rating</span>
-                        <div className="d-flex align-items-center">
-                          <strong className={`me-2 ${theme === 'dark' ? 'text-light' : ''}`}>{project.averageRating.toFixed(1)}</strong>
-                          <StarRating rating={project.averageRating} />
-                        </div>
-                      </div>
-                      <div className="d-flex justify-content-between">
-                        <span className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>Funding Progress</span>
-                        <strong className={theme === 'dark' ? 'text-light' : ''}>{progress.toFixed(1)}%</strong>
-                      </div>
+                      <h5 className="mb-4">Project Donations</h5>
+                      <Table responsive className={theme === 'dark' ? 'table-dark' : ''}>
+                        <thead>
+                          <tr>
+                            <th>ID</th>
+                            <th>Donor</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {donations.map(donation => (
+                            <tr key={donation.id}>
+                              <td>{donation.id}</td>
+                              <td>{donation.userName}</td>
+                              <td>${donation.amount}</td>
+                              <td>{new Date(donation.createdAt).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                          {donations.length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="text-center">No donations found</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </Table>
                     </Card.Body>
                   </Card>
-                </div>
-              </Col>
-            </Row>
-          </Container>
-        </animated.div>
+                </Tab.Pane>
+              )}
+            </Tab.Content>
+          </Tab.Container>
+        </Container>
+      </animated.div>
+      
+      <Footer />
 
-        <Footer />
+      <DonationModal
+        show={showDonateModal}
+        onHide={() => setShowDonateModal(false)}
+        projectTitle={project.title}
+        onDonate={handleDonate}
+      />
 
-        {/* Donation Modal */}
-        <DonationModal
-            show={showDonationModal}
-            onHide={() => setShowDonationModal(false)}
-            projectTitle={project.title}
-            onDonate={handleDonate}
-        />
-
-        {/* Share Modal */}
-        <Modal
-            show={showShareModal}
-            onHide={() => setShowShareModal(false)}
-            centered
+      <Modal
+        show={showUpdateModal}
+        onHide={() => {
+          setShowUpdateModal(false);
+          setEditingUpdate(null);
+        }}
+        centered
+      >
+        <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+          <Modal.Title>{editingUpdate ? 'Edit Update' : 'Add Update'}</Modal.Title>
+        </Modal.Header>
+        <Formik
+          initialValues={{ text: editingUpdate?.text || '' }}
+          validationSchema={updateSchema}
+          onSubmit={handleUpdateSubmit}
         >
-          <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-            <Modal.Title>Share this project</Modal.Title>
-          </Modal.Header>
-          <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
-            <p className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-              Help spread the word about this project by sharing it with your network.
-            </p>
-            <SocialShareButtons projectId={project.id} projectTitle={project.title} />
-          </Modal.Body>
-        </Modal>
-      </div>
+          {({
+            values,
+            errors,
+            touched,
+            handleChange,
+            handleBlur,
+            handleSubmit,
+            isSubmitting
+          }) => (
+            <Form onSubmit={handleSubmit}>
+              <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
+                <Form.Group>
+                  <Form.Label>Update Text</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={4}
+                    name="text"
+                    value={values.text}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    isInvalid={touched.text && !!errors.text}
+                    className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.text}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Modal.Body>
+              <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
+                <Button
+                  variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
+                  onClick={() => {
+                    setShowUpdateModal(false);
+                    setEditingUpdate(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : editingUpdate ? 'Save Changes' : 'Add Update'}
+                </Button>
+              </Modal.Footer>
+            </Form>
+          )}
+        </Formik>
+      </Modal>
+
+      <Modal
+        show={showReviewModal}
+        onHide={() => {
+          setShowReviewModal(false);
+          setEditingReview(null);
+        }}
+        centered
+      >
+        <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+          <Modal.Title>{editingReview ? 'Edit Review' : 'Write a Review'}</Modal.Title>
+        </Modal.Header>
+        <Formik
+          initialValues={{
+            rating: editingReview?.rating || 5,
+            comment: editingReview?.comment || ''
+          }}
+          validationSchema={reviewSchema}
+          onSubmit={handleReviewSubmit}
+        >
+          {({
+            values,
+            errors,
+            touched,
+            handleChange,
+            handleBlur,
+            handleSubmit,
+            setFieldValue,
+            isSubmitting
+          }) => (
+            <Form onSubmit={handleSubmit}>
+              <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Rating</Form.Label>
+                  <div className="d-flex gap-2">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Button
+                        key={index}
+                        variant="link"
+                        className="p-0"
+                        onClick={() => setFieldValue('rating', index + 1)}
+                      >
+                        <Star
+                          size={24}
+                          className={index < values.rating ? 'text-warning' : 'text-muted'}
+                          fill={index < values.rating ? 'currentColor' : 'none'}
+                        />
+                      </Button>
+                    ))}
+                  </div>
+                  {touched.rating && errors.rating && (
+                    <div className="text-danger">{errors.rating}</div>
+                  )}
+                </Form.Group>
+
+                <Form.Group>
+                  <Form.Label>Review</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={4}
+                    name="comment"
+                    value={values.comment}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    isInvalid={touched.comment && !!errors.comment}
+                    className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.comment}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Modal.Body>
+              <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
+                <Button
+                  variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
+                  onClick={() => {
+                    setShowReviewModal(false);
+                    setEditingReview(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : editingReview ? 'Save Changes' : 'Submit Review'}
+                </Button>
+              </Modal.Footer>
+            </Form>
+          )}
+        </Formik>
+      </Modal>
+    </div>
   );
 };

@@ -5,15 +5,21 @@ interface User {
   id: string;
   name: string;
   email: string;
+  role: 'USER' | 'ADMIN';
 }
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (identifier: string, password: string) => Promise<void>;
+  isMockUser: boolean;
+  isMockAdmin: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   mockLogin: () => void;
-  isMockUser: boolean;
+  mockAdminLogin: () => void;
+  updateProfile: (data: { name?: string; email?: string }) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -22,45 +28,110 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMockUser, setIsMockUser] = useState(false);
+  const [isMockAdmin, setIsMockAdmin] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      axios.get('/api/user')
-          .then(response => setUser(response.data))
-          .catch(() => localStorage.removeItem('token'))
-          .finally(() => setLoading(false));
+      // TODO: API Call - Validate token and get user info
+      // GET /api/users/me
+      setLoading(false);
     } else {
       setLoading(false);
     }
   }, []);
 
-  const login = async (identifier: string, password: string) => {
-    const response = await axios.post('/api/auth/login', { identifier, password });
-    localStorage.setItem('token', response.data.token);
-    setUser(response.data.user);
+  const mockLogin = () => {
+    setUser({
+      id: 'mock-user-id',
+      name: 'Mock User',
+      email: 'mock@example.com',
+      role: 'USER'
+    });
+    setIsMockUser(true);
+    setIsMockAdmin(false);
+  };
+
+  const mockAdminLogin = () => {
+    setUser({
+      id: 'mock-admin-id',
+      name: 'Mock Admin',
+      email: 'admin@example.com',
+      role: 'ADMIN'
+    });
+    setIsMockAdmin(true);
+    setIsMockUser(false);
+  };
+
+  const login = async (email: string, password: string) => {
+    try {
+      // TODO: API Call - User login
+      // POST /api/auth/login
+      // const response = await axios.post('/api/auth/login', { email, password });
+      // localStorage.setItem('token', response.data.token);
+      // setUser(response.data.user);
+    } catch (error) {
+      throw new Error('Login failed');
+    }
+  };
+
+  const register = async (username: string, email: string, password: string) => {
+    try {
+      // TODO: API Call - User registration
+      // POST /api/auth/register
+      // const response = await axios.post('/api/auth/register', { username, email, password });
+    } catch (error) {
+      throw new Error('Registration failed');
+    }
   };
 
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
     setIsMockUser(false);
+    setIsMockAdmin(false);
   };
 
-  const mockLogin = () => {
-    const mockUser = {
-      id: 'mock-user-123',
-      name: 'Test User',
-      email: 'test@example.com'
-    };
-    setUser(mockUser);
-    setIsMockUser(true);
+  const updateProfile = async (data: { name?: string; email?: string }) => {
+    try {
+      // TODO: API Call - Update user profile
+      // PUT /api/users/profile
+      // const response = await axios.put('/api/users/profile', data);
+      // setUser(response.data);
+    } catch (error) {
+      throw new Error('Profile update failed');
+    }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      // TODO: API Call - Delete user account
+      // DELETE /api/users/me
+      // await axios.delete('/api/users/me');
+      logout();
+    } catch (error) {
+      throw new Error('Account deletion failed');
+    }
   };
 
   return (
-      <AuthContext.Provider value={{ user, loading, login, logout, mockLogin, isMockUser }}>
-        {children}
-      </AuthContext.Provider>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        loading,
+        isMockUser,
+        isMockAdmin,
+        login, 
+        register,
+        logout,
+        mockLogin,
+        mockAdminLogin,
+        updateProfile,
+        deleteAccount
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
 };
 
