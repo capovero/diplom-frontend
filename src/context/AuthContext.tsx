@@ -33,8 +33,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      // TODO: API Call - Validate token and get user info
-      // GET /api/users/me
+      // TODO: Здесь сейчас используются мок-данные; нужно заменить на fetch/axios-запрос к эндпоинту '/api/users/me'.
+      // TODO: Добавить обработку loading/error для реального API.
       setLoading(false);
     } else {
       setLoading(false);
@@ -65,8 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      // TODO: API Call - User login
-      // POST /api/auth/login
+      // TODO: Здесь сейчас используются мок-данные; нужно заменить на fetch/axios-запрос к эндпоинту '/api/auth/login'.
+      // TODO: Добавить обработку loading/error для реального API.
       // const response = await axios.post('/api/auth/login', { email, password });
       // localStorage.setItem('token', response.data.token);
       // setUser(response.data.user);
@@ -77,8 +77,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (username: string, email: string, password: string) => {
     try {
-      // TODO: API Call - User registration
-      // POST /api/auth/register
+      // TODO: Здесь сейчас используются мок-данные; нужно заменить на fetch/axios-запрос к эндпоинту '/api/auth/register'.
+      // TODO: Добавить обработку loading/error для реального API.
       // const response = await axios.post('/api/auth/register', { username, email, password });
     } catch (error) {
       throw new Error('Registration failed');
@@ -94,8 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (data: { name?: string; email?: string }) => {
     try {
-      // TODO: API Call - Update user profile
-      // PUT /api/users/profile
+      // TODO: Здесь сейчас используются мок-данные; нужно заменить на fetch/axios-запрос к эндпоинту '/api/users/profile'.
+      // TODO: Добавить обработку loading/error для реального API.
       // const response = await axios.put('/api/users/profile', data);
       // setUser(response.data);
     } catch (error) {
@@ -105,8 +105,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const deleteAccount = async () => {
     try {
-      // TODO: API Call - Delete user account
-      // DELETE /api/users/me
+      // TODO: Здесь сейчас используются мок-данные; нужно заменить на fetch/axios-запрос к эндпоинту '/api/users/me'.
+      // TODO: Добавить обработку loading/error для реального API.
       // await axios.delete('/api/users/me');
       logout();
     } catch (error) {

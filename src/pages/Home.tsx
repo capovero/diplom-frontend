@@ -4,6 +4,7 @@ import { ProjectCard } from '../components/ProjectCard';
 import { Pagination } from '../components/Pagination';
 import { Footer } from '../components/Footer';
 import { CrowdfundingInfo } from '../components/CrowdfundingInfo';
+// TODO: Удалить import mockData после интеграции
 import { mockProjects, mockCategories } from '../mockData';
 import { useTheme } from '../context/ThemeContext';
 
@@ -29,14 +30,18 @@ export const Home: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [showInfo, setShowInfo] = useState(false);
   const { theme } = useTheme();
-  const projectsPerPage = 6; // Changed to 6 for better grid layout
+  const projectsPerPage = 6;
 
   useEffect(() => {
+    // TODO: Здесь сейчас используются мок-данные; нужно заменить на fetch/axios-запрос к эндпоинту '/api/categories'.
+    // TODO: Добавить обработку loading/error для реального API.
     setCategories(mockCategories);
   }, []);
 
   useEffect(() => {
-    // Simulate API call with pagination
+    // TODO: Здесь сейчас используются мок-данные; нужно заменить на fetch/axios-запрос к эндпоинту '/api/projects'.
+    // TODO: Вынести параметры запроса (page, category) в переменные и передавать в axios.get()
+    // TODO: Добавить обработку loading/error для реального API.
     const filteredProjects = mockProjects
       .filter(project => !selectedCategory || project.category === selectedCategory);
     

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Badge, ProgressBar, Button, Form, Card, Carousel, Modal, Tab, Nav, Table } from 'react-bootstrap';
+import { Container, Row, Col, Badge, ProgressBar, Button, Card, Carousel, Modal, Tab, Nav, Table } from 'react-bootstrap';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSpring, animated } from 'react-spring';
 import { Star, ChevronLeft, ChevronRight, Share2, Trash2, Edit } from 'lucide-react';
@@ -88,7 +88,8 @@ export const ProjectPage: React.FC = () => {
   });
 
   useEffect(() => {
-    // Simulate fetching project data
+    // TODO: Replace with actual API call
+    // GET /api/projects/${id}
     const mockProject: Project = {
       id: id || '1',
       title: 'Modern E-commerce Platform',
@@ -153,7 +154,8 @@ export const ProjectPage: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
-    // Simulate fetching updates
+    // TODO: Replace with actual API call
+    // GET /api/updates/project/${id}
     const mockUpdates: ProjectUpdate[] = [
       {
         id: '1',
@@ -181,11 +183,11 @@ export const ProjectPage: React.FC = () => {
 
   const handleDonate = async (amount: number) => {
     try {
-      // Simulate API call
+      // TODO: Replace with actual API call
+      // POST /api/donations
       console.log('Processing donation:', amount);
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Update project's current amount
       setProject(prev => prev ? {
         ...prev,
         currentAmount: prev.currentAmount + amount
@@ -198,67 +200,118 @@ export const ProjectPage: React.FC = () => {
   };
 
   const handleUpdateSubmit = async (values: { text: string }, { resetForm }: any) => {
-    const newUpdate = {
-      id: Date.now().toString(),
-      text: values.text,
-      createdAt: new Date().toISOString(),
-      createdBy: {
-        id: user?.id || '',
-        name: user?.name || '',
-        role: user?.role || 'USER'
+    try {
+      // TODO: Replace with actual API call
+      // POST /api/updates/${id} or PUT /api/updates/${editingUpdate.id}
+      const newUpdate = {
+        id: Date.now().toString(),
+        text: values.text,
+        createdAt: new Date().toISOString(),
+        createdBy: {
+          id: user?.id || '',
+          name: user?.name || '',
+          role: user?.role || 'USER'
+        }
+      };
+
+      if (editingUpdate) {
+        setUpdates(prev => prev.map(update => 
+          update.id === editingUpdate.id ? { ...update, text: values.text } : update
+        ));
+      } else {
+        setUpdates(prev => [newUpdate, ...prev]);
       }
-    };
 
-    if (editingUpdate) {
-      setUpdates(prev => prev.map(update => 
-        update.id === editingUpdate.id ? { ...update, text: values.text } : update
-      ));
-    } else {
-      setUpdates(prev => [newUpdate, ...prev]);
+      setShowUpdateModal(false);
+      setEditingUpdate(null);
+      resetForm();
+    } catch (error) {
+      console.error('Failed to submit update:', error);
     }
-
-    setShowUpdateModal(false);
-    setEditingUpdate(null);
-    resetForm();
   };
 
   const handleReviewSubmit = async (values: { rating: number; comment: string }, { resetForm }: any) => {
-    const newReview = {
-      id: Date.now().toString(),
-      ...values,
-      userId: user?.id || '',
-      userName: user?.name || '',
-      createdAt: new Date().toISOString()
-    };
+    try {
+      // TODO: Replace with actual API call
+      // POST /api/reviews/${id} or PUT /api/reviews/${editingReview.id}
+      const newReview = {
+        id: Date.now().toString(),
+        ...values,
+        userId: user?.id || '',
+        userName: user?.name || '',
+        createdAt: new Date().toISOString()
+      };
 
-    if (editingReview) {
-      setReviews(prev => prev.map(review =>
-        review.id === editingReview.id ? { ...newReview, id: review.id } : review
-      ));
-    } else {
-      setReviews(prev => [newReview, ...prev]);
+      if (editingReview) {
+        setReviews(prev => prev.map(review =>
+          review.id === editingReview.id ? { ...newReview, id: review.id } : review
+        ));
+      } else {
+        setReviews(prev => [newReview, ...prev]);
+      }
+
+      // Update project rating
+      if (project) {
+        const newTotalReviews = editingReview ? project.totalReviews : project.totalReviews + 1;
+        const currentTotal = (project.rating * project.totalReviews) - (editingReview?.rating || 0);
+        const newRating = (currentTotal + values.rating) / newTotalReviews;
+        
+        setProject(prev => prev ? {
+          ...prev,
+          rating: newRating,
+          totalReviews: newTotalReviews
+        } : null);
+      }
+
+      setShowReviewModal(false);
+      setEditingReview(null);
+      resetForm();
+    } catch (error) {
+      console.error('Failed to submit review:', error);
     }
-
-    setShowReviewModal(false);
-    setEditingReview(null);
-    resetForm();
   };
 
-  const handleDeleteUpdate = (updateId: string) => {
-    if (window.confirm('Are you sure you want to delete this update?')) {
-      setUpdates(prev => prev.filter(update => update.id !== updateId));
+  const handleDeleteUpdate = async (updateId: string) => {
+    try {
+      // TODO: Replace with actual API call
+      // DELETE /api/updates/${updateId}
+      if (window.confirm('Are you sure you want to delete this update?')) {
+        setUpdates(prev => prev.filter(update => update.id !== updateId));
+      }
+    } catch (error) {
+      console.error('Failed to delete update:', error);
     }
   };
 
-  const handleDeleteReview = (reviewId: string) => {
-    if (window.confirm('Are you sure you want to delete this review?')) {
-      setReviews(prev => prev.filter(review => review.id !== reviewId));
+  const handleDeleteReview = async (reviewId: string) => {
+    try {
+      // TODO: Replace with actual API call
+      // DELETE /api/reviews/${reviewId}
+      if (window.confirm('Are you sure you want to delete this review?')) {
+        const reviewToDelete = reviews.find(r => r.id === reviewId);
+        if (reviewToDelete && project) {
+          const newTotalReviews = project.totalReviews - 1;
+          const newRating = newTotalReviews > 0 
+            ? ((project.rating * project.totalReviews) - reviewToDelete.rating) / newTotalReviews
+            : 0;
+          
+          setProject(prev => prev ? {
+            ...prev,
+            rating: newRating,
+            totalReviews: newTotalReviews
+          } : null);
+        }
+        setReviews(prev => prev.filter(review => review.id !== reviewId));
+      }
+    } catch (error) {
+      console.error('Failed to delete review:', error);
     }
   };
 
   const canManageUpdates = user?.role === 'ADMIN' || project?.creator?.id === user?.id;
   const canManageReviews = user?.role === 'ADMIN';
   const hasUserReviewed = reviews.some(review => review.userId === user?.id);
+  const isProjectCreator = project?.creator?.id === user?.id;
 
   if (!project) {
     return (
@@ -295,6 +348,11 @@ export const ProjectPage: React.FC = () => {
                 <Star className="text-warning" size={18} />
                 <span className="ms-1">{project.rating.toFixed(1)}</span>
                 <span className="ms-1 text-muted">({project.totalReviews} reviews)</span>
+              </div>
+              <div className="ms-2">
+                by <Link to={`/profile/${project.creator.id}`} className={`text-decoration-none ${theme === 'dark' ? 'text-light' : 'text-primary'}`}>
+                  {project.creator.name}
+                </Link>
               </div>
             </div>
           </div>
@@ -368,24 +426,14 @@ export const ProjectPage: React.FC = () => {
                   />
                 </Card.Body>
               </Card>
-
-              <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-                <Card.Body>
-                  <h5 className="card-title">Project Creator</h5>
-                  <p className="mb-2">{project.creator.name}</p>
-                  <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                    Created on {new Date(project.createdAt).toLocaleDateString()}
-                  </small>
-                </Card.Body>
-              </Card>
             </Col>
           </Row>
 
-          <Tab.Container defaultActiveKey="details">
+          <Tab.Container defaultActiveKey="reviews">
             <Nav variant="tabs" className="mb-4">
               <Nav.Item>
-                <Nav.Link eventKey="details" className={theme === 'dark' ? 'text-light' : ''}>
-                  Details
+                <Nav.Link eventKey="reviews" className={theme === 'dark' ? 'text-light' : ''}>
+                  Reviews
                 </Nav.Link>
               </Nav.Item>
               <Nav.Item>
@@ -393,12 +441,7 @@ export const ProjectPage: React.FC = () => {
                   Updates
                 </Nav.Link>
               </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="reviews" className={theme === 'dark' ? 'text-light' : ''}>
-                  Reviews
-                </Nav.Link>
-              </Nav.Item>
-              {(user?.role === 'ADMIN' || project?.creator?.id === user?.id) && (
+              {(user?.role === 'ADMIN' || isProjectCreator) && (
                 <Nav.Item>
                   <Nav.Link eventKey="donations" className={theme === 'dark' ? 'text-light' : ''}>
                     Donations
@@ -408,90 +451,28 @@ export const ProjectPage: React.FC = () => {
             </Nav>
 
             <Tab.Content>
-              <Tab.Pane eventKey="details">
-                <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-                  <Card.Body>
-                    <h5>Project Details</h5>
-                    <p>{project.description}</p>
-                  </Card.Body>
-                </Card>
-              </Tab.Pane>
-
-              <Tab.Pane eventKey="updates">
-                <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-                  <Card.Body>
-                    <div className="d-flex justify-content-between align-items-center mb-4">
-                      <h5 className="mb-0">Project Updates</h5>
-                      {canManageUpdates && (
-                        <Button
-                          variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
-                          onClick={() => {
-                            setEditingUpdate(null);
-                            setShowUpdateModal(true);
-                          }}
-                        >
-                          Add Update
-                        </Button>
-                      )}
-                    </div>
-
-                    {updates.map(update => (
-                      <Card 
-                        key={update.id} 
-                        className={`mb-3 ${theme === 'dark' ? 'bg-secondary-dark border-secondary' : 'bg-light'}`}
-                      >
-                        <Card.Body>
-                          <div className="d-flex justify-content-between mb-2">
-                            <div>
-                              <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                                {new Date(update.createdAt).toLocaleDateString()} by {update.createdBy.name}
-                                {update.createdBy.role === 'ADMIN' && (
-                                  <Badge bg="warning" className="ms-2">Admin</Badge>
-                                )}
-                              </small>
-                            </div>
-                            {(user?.role === 'ADMIN' || (project?.creator?.id === user?.id && update.createdBy.id === user?.id)) && (
-                              <div>
-                                <Button
-                                  variant="link"
-                                  className="p-0 me-3"
-                                  onClick={() => {
-                                    setEditingUpdate(update);
-                                    setShowUpdateModal(true);
-                                  }}
-                                >
-                                  <Edit size={16} />
-                                </Button>
-                                <Button
-                                  variant="link"
-                                  className="p-0 text-danger"
-                                  onClick={() => handleDeleteUpdate(update.id)}
-                                >
-                                  <Trash2 size={16} />
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                          <p className="mb-0">{update.text}</p>
-                        </Card.Body>
-                      </Card>
-                    ))}
-
-                    {updates.length === 0 && (
-                      <p className={`text-center ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
-                        No updates yet
-                      </p>
-                    )}
-                  </Card.Body>
-                </Card>
-              </Tab.Pane>
-
               <Tab.Pane eventKey="reviews">
                 <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-center mb-4">
-                      <h5 className="mb-0">Project Reviews</h5>
-                      {user && !hasUserReviewed && project?.creator?.id !== user?.id && (
+                      <div>
+                        <h5 className="mb-2">Project Reviews</h5>
+                        <div className="d-flex align-items-center">
+                          <div className="me-2">
+                            {Array.from({ length: 5 }).map((_, index) => (
+                              <Star
+                                key={index}
+                                size={20}
+                                className={index < Math.round(project.rating) ? 'text-warning' : 'text-muted'}
+                                fill={index < Math.round(project.rating) ? 'currentColor' : 'none'}
+                              />
+                            ))}
+                          </div>
+                          <span className="fs-5 fw-bold me-2">{project.rating.toFixed(1)}</span>
+                          <span className="text-muted">({project.totalReviews} reviews)</span>
+                        </div>
+                      </div>
+                      {user && !hasUserReviewed && !isProjectCreator && (
                         <Button
                           variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
                           onClick={() => {
@@ -524,7 +505,9 @@ export const ProjectPage: React.FC = () => {
                                   ))}
                                 </div>
                                 <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                                  by {review.userName}
+                                  by <Link to={`/profile/${review.userId}`} className={theme === 'dark' ? 'text-light' : 'text-primary'}>
+                                    {review.userName}
+                                  </Link>
                                 </small>
                               </div>
                               <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
@@ -569,7 +552,79 @@ export const ProjectPage: React.FC = () => {
                 </Card>
               </Tab.Pane>
 
-              {(user?.role === 'ADMIN' || project?.creator?.id === user?.id) && (
+              <Tab.Pane eventKey="updates">
+                <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+                  <Card.Body>
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                      <h5 className="mb-0">Project Updates</h5>
+                      {canManageUpdates && (
+                        <Button
+                          variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+                          onClick={() => {
+                            setEditingUpdate(null);
+                            setShowUpdateModal(true);
+                          }}
+                        >
+                          Add Update
+                        </Button>
+                      )}
+                    </div>
+
+                    {updates.map(update => (
+                      <Card 
+                        key={update.id} 
+                        className={`mb-3 ${theme === 'dark' ? 'bg-secondary-dark border-secondary' : 'bg-light'}`}
+                      >
+                        <Card.Body>
+                          <div className="d-flex justify-content-between mb-2">
+                            <div>
+                              <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
+                                {new Date(update.createdAt).toLocaleDateString()} by{' '}
+                                <Link to={`/profile/${update.createdBy.id}`} className={theme === 'dark' ? 'text-light' : 'text-primary'}>
+                                  {update.createdBy.name}
+                                </Link>
+                                {update.createdBy.role === 'ADMIN' && (
+                                  <Badge bg="warning" className="ms-2">Admin</Badge>
+                                )}
+                              </small>
+                            </div>
+                            {(user?.role === 'ADMIN' || (isProjectCreator && update.createdBy.id === user?.id)) && (
+                              <div>
+                                <Button
+                                  variant="link"
+                                  className="p-0 me-3"
+                                  onClick={() => {
+                                    setEditingUpdate(update);
+                                    setShowUpdateModal(true);
+                                  }}
+                                >
+                                  <Edit size={16} />
+                                </Button>
+                                <Button
+                                  variant="link"
+                                  className="p-0 text-danger"
+                                  onClick={() => handleDeleteUpdate(update.id)}
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                          <p className="mb-0">{update.text}</p>
+                        </Card.Body>
+                      </Card>
+                    ))}
+
+                    {updates.length === 0 && (
+                      <p className={`text-center ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
+                        No updates yet
+                      </p>
+                    )}
+                  </Card.Body>
+                </Card>
+              </Tab.Pane>
+
+              {(user?.role === 'ADMIN' || isProjectCreator) && (
                 <Tab.Pane eventKey="donations">
                   <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
                     <Card.Body>
@@ -587,7 +642,11 @@ export const ProjectPage: React.FC = () => {
                           {donations.map(donation => (
                             <tr key={donation.id}>
                               <td>{donation.id}</td>
-                              <td>{donation.userName}</td>
+                              <td>
+                                <Link to={`/profile/${donation.userId}`} className={theme === 'dark' ? 'text-light' : 'text-primary'}>
+                                  {donation.userName}
+                                </Link>
+                              </td>
                               <td>${donation.amount}</td>
                               <td>{new Date(donation.createdAt).toLocaleDateString()}</td>
                             </tr>
@@ -730,7 +789,8 @@ export const ProjectPage: React.FC = () => {
                     ))}
                   </div>
                   {touched.rating && errors.rating && (
-                    <div className="text-danger">{errors.rating}</div>
+                    <div className="text-danger">{errors.rating}
+                    </div>
                   )}
                 </Form.Group>
 

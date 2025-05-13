@@ -50,7 +50,7 @@ export const Header: React.FC = () => {
       <Container>
         <Navbar.Brand as={Link} to="/" className={theme === 'dark' ? 'text-light' : 'text-dark'}>
           <Home className="me-2" />
-          ProjectHub
+          ProjectFlow
           {isAdminRoute && <span className="ms-2 text-warning">(Admin Mode)</span>}
         </Navbar.Brand>
         

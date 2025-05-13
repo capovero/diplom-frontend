@@ -10,7 +10,6 @@ interface UserProfile {
   id: string;
   name: string;
   email: string;
-  joinedDate: string;
 }
 
 interface Project {
@@ -21,6 +20,10 @@ interface Project {
   progress: number;
   category: string;
   status: string;
+  creator: {
+    id: string;
+    name: string;
+  };
 }
 
 interface Donation {
@@ -41,17 +44,15 @@ export const ProfilePage: React.FC = () => {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Removed unused activeTab state variable
-  
   const isOwnProfile = user?.id === userId;
 
   useEffect(() => {
-    // Simulate API call
+    // TODO: Здесь сейчас используются мок-данные; нужно заменить на fetch/axios-запрос к эндпоинту '/api/users/${userId}'.
+    // TODO: Добавить обработку loading/error для реального API.
     const mockProfile = {
       id: userId || '',
       name: 'John Doe',
-      email: 'john@example.com',
-      joinedDate: '2024-01-01T00:00:00Z'
+      email: 'john@example.com'
     };
 
     const mockProjects = [
@@ -62,7 +63,11 @@ export const ProfilePage: React.FC = () => {
         image: 'https://images.unsplash.com/photo-1661956602116-aa6865609028?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
         progress: 75,
         category: 'Web Development',
-        status: 'Active'
+        status: 'Active',
+        creator: {
+          id: userId || '',
+          name: mockProfile.name
+        }
       },
       {
         id: '2',
@@ -71,10 +76,16 @@ export const ProfilePage: React.FC = () => {
         image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
         progress: 30,
         category: 'Mobile Apps',
-        status: 'Pending'
+        status: 'Pending',
+        creator: {
+          id: userId || '',
+          name: mockProfile.name
+        }
       }
     ];
 
+    // TODO: Здесь сейчас используются мок-данные; нужно заменить на fetch/axios-запрос к эндпоинту '/api/donations/user/${userId}'.
+    // TODO: Добавить обработку loading/error для реального API.
     const mockDonations = [
       {
         id: 'd1',
@@ -132,9 +143,6 @@ export const ProfilePage: React.FC = () => {
                   {isOwnProfile && (
                     <p className={`mb-2 ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>{profile.email}</p>
                   )}
-                  <p className={`mb-0 ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
-                    Member since {new Date(profile.joinedDate).toLocaleDateString()}
-                  </p>
                 </div>
                 {isOwnProfile && (
                   <div>

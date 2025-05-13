@@ -21,9 +21,6 @@ const projectSchema = Yup.object().shape({
   goalAmount: Yup.number()
     .min(100, 'Goal must be at least $100')
     .required('Funding goal is required'),
-  endDate: Yup.date()
-    .min(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'End date must be at least 1 week from now')
-    .required('End date is required')
 });
 
 export const CreateProjectPage: React.FC = () => {
@@ -80,13 +77,14 @@ export const CreateProjectPage: React.FC = () => {
               description: '',
               category: '',
               goalAmount: '',
-              endDate: '',
               videoUrl: ''
             }}
             validationSchema={projectSchema}
             onSubmit={async (values, { setSubmitting, setStatus }) => {
               try {
-                // Here you would normally upload images and submit the form to your API
+                // TODO: API Call - Create project
+                // POST /api/projects
+                // FormData with project details and images
                 console.log('Form values:', values);
                 console.log('Images:', imageFiles);
                 
@@ -202,26 +200,6 @@ export const CreateProjectPage: React.FC = () => {
                       </Form.Control.Feedback>
                       <Form.Text className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
                         Minimum $100. Set a realistic goal that covers your project needs.
-                      </Form.Text>
-                    </Form.Group>
-                    
-                    <Form.Group className="mb-3">
-                      <Form.Label>Campaign End Date</Form.Label>
-                      <Form.Control
-                        type="date"
-                        name="endDate"
-                        value={values.endDate}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isInvalid={touched.endDate && !!errors.endDate}
-                        min={new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
-                        className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
-                      />
-                      <Form.Control.Feedback type="invalid">
-                        {errors.endDate}
-                      </Form.Control.Feedback>
-                      <Form.Text className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                        Must be at least 1 week from today.
                       </Form.Text>
                     </Form.Group>
                   </Card.Body>
