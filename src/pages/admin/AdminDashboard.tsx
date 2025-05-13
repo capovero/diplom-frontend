@@ -10,22 +10,22 @@ export const AdminDashboard: React.FC = () => {
 
   const menuItems = [
     {
-      title: 'Users Management',
-      description: 'Manage users, view details, and handle user-related operations',
+      title: 'Управление пользователями',
+      description: 'Управление пользователями, просмотр информации и выполнение операций, связанных с пользователями',
       icon: Users,
       path: '/admin/users',
       color: 'primary'
     },
     {
-      title: 'Projects Management',
-      description: 'Review, approve, and manage all projects',
+      title: 'Управление проектами',
+      description: 'Анализ, утверждение и управление всеми проектами',
       icon: Package2,
       path: '/admin/projects',
       color: 'success'
     },
     {
-      title: 'Categories',
-      description: 'Manage project categories and classifications',
+      title: 'Категории',
+      description: 'Управление категориями и классификациями проектов',
       icon: LayoutGrid,
       path: '/admin/categories',
       color: 'warning'
@@ -34,7 +34,7 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <Container fluid className="py-4">
-      <h2 className={`mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Admin Dashboard</h2>
+      <h2 className={`mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Панель администратора</h2>
       
       <Row xs={1} md={2} lg={3} className="g-4">
         {menuItems.map((item, index) => (
@@ -59,7 +59,7 @@ export const AdminDashboard: React.FC = () => {
                   className="mt-auto align-self-start"
                   onClick={() => navigate(item.path)}
                 >
-                  Manage
+                  Управление
                 </Button>
               </Card.Body>
             </Card>

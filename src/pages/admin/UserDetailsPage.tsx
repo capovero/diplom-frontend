@@ -77,7 +77,7 @@ export const UserDetailsPage: React.FC = () => {
       <Container className="py-4">
         <div className="text-center">
           <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
+            <span className="visually-hidden">Загрузка...</span>
           </div>
         </div>
       </Container>
@@ -87,7 +87,7 @@ export const UserDetailsPage: React.FC = () => {
   if (!user) {
     return (
       <Container className="py-4">
-        <div className="text-center">User not found</div>
+        <div className="text-center">Пользователь не найден</div>
       </Container>
     );
   }
@@ -102,25 +102,25 @@ export const UserDetailsPage: React.FC = () => {
         >
           <ArrowLeft size={20} />
         </Button>
-        <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>User Details</h2>
+        <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>Подробности о пользователе</h2>
       </div>
 
       <Row className="g-4">
         <Col lg={4}>
           <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
             <Card.Body>
-              <h5 className="card-title mb-4">Basic Information</h5>
+              <h5 className="card-title mb-4">Основная информация</h5>
               <dl>
-                <dt>User ID</dt>
+                <dt>ID Пользователя</dt>
                 <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>{user.id}</dd>
                 
-                <dt>Name</dt>
+                <dt>Имя</dt>
                 <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>{user.name}</dd>
                 
-                <dt>Email</dt>
+                <dt>Почта</dt>
                 <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>{user.email}</dd>
                 
-                <dt>Joined</dt>
+                <dt>Joined</dt> //убрать
                 <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
                   {new Date(user.createdAt).toLocaleDateString()}
                 </dd>
@@ -132,14 +132,14 @@ export const UserDetailsPage: React.FC = () => {
         <Col lg={8}>
           <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
             <Card.Body>
-              <h5 className="card-title mb-4">Projects</h5>
+              <h5 className="card-title mb-4">Проекты</h5>
               <Table responsive className={theme === 'dark' ? 'table-dark' : ''}>
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th>Title</th>
-                    <th>Status</th>
-                    <th>Created</th>
+                    <th>Название</th>
+                    <th>Статус</th>
+                    <th>Создан</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -158,7 +158,7 @@ export const UserDetailsPage: React.FC = () => {
 
           <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
             <Card.Body>
-              <h5 className="card-title mb-4">Donations</h5>
+              <h5 className="card-title mb-4">Пожертвования</h5>
               <Table responsive className={theme === 'dark' ? 'table-dark' : ''}>
                 <thead>
                   <tr>

@@ -68,16 +68,16 @@ export const Home: React.FC = () => {
               <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
                 <Card.Body>
                   <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h2 className="mb-0">Welcome to ProjectHub</h2>
+                    <h2 className="mb-0">Добро пожаловать на ProjectFlow</h2>
                     <Button 
                       variant={theme === 'dark' ? 'outline-light' : 'outline-primary'} 
                       onClick={() => setShowInfo(!showInfo)}
                     >
-                      {showInfo ? 'Hide Info' : 'About Crowdfunding'}
+                      {showInfo ? 'Скрыть информацию' : 'О краудфандинге'}
                     </Button>
                   </div>
                   <p className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                    Discover innovative projects and support creators in bringing their ideas to life.
+                    Откройте для себя инновационные проекты и поддержите авторов в воплощении их идей в жизнь.
                   </p>
                   
                   {showInfo && <CrowdfundingInfo />}
@@ -94,7 +94,7 @@ export const Home: React.FC = () => {
                 setCurrentPage(1);
               }}
             >
-              All
+              Все
             </Button>
             {categories.map(category => (
               <Button
@@ -120,7 +120,7 @@ export const Home: React.FC = () => {
 
           {projects.length === 0 && (
             <div className="text-center py-5">
-              <p className="text-muted">No projects found</p>
+              <p className="text-muted">Проекты не найдены</p>
             </div>
           )}
 

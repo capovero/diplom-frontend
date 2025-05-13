@@ -7,8 +7,8 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
 const loginSchema = Yup.object().shape({
-  identifier: Yup.string().required('Email or username is required'),
-  password: Yup.string().required('Password is required')
+  identifier: Yup.string().required('Имя пользователя обязательно'),
+  password: Yup.string().required('Пароль обязателен')
 });
 
 export const LoginPage: React.FC = () => {
@@ -19,7 +19,7 @@ export const LoginPage: React.FC = () => {
   return (
     <Container className="py-5">
       <div className="mx-auto" style={{ maxWidth: '500px' }}>
-        <h1 className={`text-center mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Login</h1>
+        <h1 className={`text-center mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Вход</h1>
         
         <Formik
           initialValues={{ identifier: '', password: '' }}
@@ -49,7 +49,7 @@ export const LoginPage: React.FC = () => {
               {status && <Alert variant="danger">{status}</Alert>}
               
               <Form.Group className="mb-3">
-                <Form.Label>Email or Username</Form.Label>
+                <Form.Label>Имя пользователя</Form.Label>
                 <Form.Control
                   type="text"
                   name="identifier"
@@ -66,7 +66,7 @@ export const LoginPage: React.FC = () => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Password</Form.Label>
+                <Form.Label>Пароль</Form.Label>
                 <Form.Control
                   type="password"
                   name="password"
@@ -87,7 +87,7 @@ export const LoginPage: React.FC = () => {
                 className="w-100 mb-3"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Logging in...' : 'Login'}
+                {isSubmitting ? 'Происходит вход...' : 'Вход'}
               </Button>
 
               <div className="text-center">
@@ -95,7 +95,7 @@ export const LoginPage: React.FC = () => {
                   to="/register" 
                   className={`text-decoration-none ${theme === 'dark' ? 'text-light' : ''}`}
                 >
-                  Don't have an account? Register
+                  У вас еще нет аккаунта? Зарегистрируйтесь!
                 </Link>
               </div>
             </Form>

@@ -151,13 +151,13 @@ export const ProfilePage: React.FC = () => {
                       className="me-2"
                       onClick={() => navigate('/create-project')}
                     >
-                      Create Project
+                      Создать проект
                     </Button>
                     <Button 
                       variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
                       onClick={() => navigate('/settings')}
                     >
-                      Edit Profile
+                      Изменить профиль
                     </Button>
                   </div>
                 )}
@@ -173,7 +173,7 @@ export const ProfilePage: React.FC = () => {
                     eventKey="projects" 
                     className={theme === 'dark' ? 'text-light' : ''}
                   >
-                    My Projects
+                    Мои проекты
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
@@ -181,7 +181,7 @@ export const ProfilePage: React.FC = () => {
                     eventKey="donations" 
                     className={theme === 'dark' ? 'text-light' : ''}
                   >
-                    My Donations
+                    Мои пожертвования
                   </Nav.Link>
                 </Nav.Item>
               </Nav>
@@ -199,12 +199,12 @@ export const ProfilePage: React.FC = () => {
                   {projects.length === 0 && (
                     <Card className={`text-center py-5 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
                       <Card.Body>
-                        <p className={theme === 'dark' ? 'text-light-50 mb-3' : 'text-muted mb-3'}>You haven't created any projects yet</p>
+                        <p className={theme === 'dark' ? 'text-light-50 mb-3' : 'text-muted mb-3'}>Вы еще не создали ни одного проекта</p>
                         <Button 
                           variant="primary" 
                           onClick={() => navigate('/create-project')}
                         >
-                          Create Your First Project
+                          Создайте свой первый проект
                         </Button>
                       </Card.Body>
                     </Card>
@@ -240,12 +240,12 @@ export const ProfilePage: React.FC = () => {
                   ) : (
                     <Card className={`text-center py-5 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
                       <Card.Body>
-                        <p className={theme === 'dark' ? 'text-light-50 mb-3' : 'text-muted mb-3'}>You haven't made any donations yet</p>
+                        <p className={theme === 'dark' ? 'text-light-50 mb-3' : 'text-muted mb-3'}>Вы еще не сделали ни одного пожертвования</p>
                         <Button 
                           variant="primary" 
                           onClick={() => navigate('/')}
                         >
-                          Explore Projects
+                          Изучить проекты
                         </Button>
                       </Card.Body>
                     </Card>
@@ -255,7 +255,7 @@ export const ProfilePage: React.FC = () => {
             </Tab.Container>
           ) : (
             <>
-              <h3 className={`mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Active Projects</h3>
+              <h3 className={`mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Активные проекты</h3>
               
               <Row xs={1} md={2} lg={3} className="g-4">
                 {projects.map(project => (
@@ -268,7 +268,7 @@ export const ProfilePage: React.FC = () => {
               {projects.length === 0 && (
                 <Card className={`text-center py-5 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
                   <Card.Body>
-                    <p className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>No active projects found</p>
+                    <p className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>Активных проектов не найдено</p>
                   </Card.Body>
                 </Card>
               )}

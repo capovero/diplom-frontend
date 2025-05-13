@@ -10,17 +10,17 @@ import { Footer } from '../components/Footer';
 
 const projectSchema = Yup.object().shape({
   title: Yup.string()
-    .min(5, 'Title must be at least 5 characters')
-    .max(100, 'Title must be less than 100 characters')
-    .required('Title is required'),
+    .min(5, 'Название должно содержать не менее 5 символов')
+    .max(100, 'Заголовок должен содержать менее 100 символов')
+    .required('Название обязательно'),
   description: Yup.string()
-    .min(50, 'Description must be at least 50 characters')
-    .required('Description is required'),
+    .min(50, 'Описание должно содержать не менее 50 символов')
+    .required('Описание обязательно'),
   category: Yup.string()
-    .required('Category is required'),
+    .required('Категория обязательна'),
   goalAmount: Yup.number()
-    .min(100, 'Goal must be at least $100')
-    .required('Funding goal is required'),
+    .min(100, 'Цель должна составлять не менее $100')
+    .required('Требуется цель финансирования'),
 });
 
 export const CreateProjectPage: React.FC = () => {
@@ -69,7 +69,7 @@ export const CreateProjectPage: React.FC = () => {
     <div className="d-flex flex-column min-vh-100">
       <main className="flex-grow-1">
         <Container className="py-5">
-          <h1 className={`mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Create New Project</h1>
+          <h1 className={`mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Создать новый проект</h1>
           
           <Formik
             initialValues={{
@@ -115,10 +115,10 @@ export const CreateProjectPage: React.FC = () => {
                 
                 <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
                   <Card.Body>
-                    <h5 className="mb-3">Basic Information</h5>
+                    <h5 className="mb-3">Основная информация</h5>
                     
                     <Form.Group className="mb-3">
-                      <Form.Label>Project Title</Form.Label>
+                      <Form.Label>Название проекта</Form.Label>
                       <Form.Control
                         type="text"
                         name="title"
@@ -134,7 +134,7 @@ export const CreateProjectPage: React.FC = () => {
                     </Form.Group>
                     
                     <Form.Group className="mb-3">
-                      <Form.Label>Category</Form.Label>
+                      <Form.Label>Категория</Form.Label>
                       <Form.Select
                         name="category"
                         value={values.category}
@@ -143,7 +143,7 @@ export const CreateProjectPage: React.FC = () => {
                         isInvalid={touched.category && !!errors.category}
                         className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
                       >
-                        <option value="">Select a category</option>
+                        <option value="">Выбрать категорию</option>
                         {mockCategories.map(category => (
                           <option key={category.id} value={category.name}>
                             {category.name}
@@ -156,7 +156,7 @@ export const CreateProjectPage: React.FC = () => {
                     </Form.Group>
                     
                     <Form.Group className="mb-3">
-                      <Form.Label>Project Description</Form.Label>
+                      <Form.Label>Описание проекта</Form.Label>
                       <Form.Control
                         as="textarea"
                         rows={5}
@@ -165,14 +165,14 @@ export const CreateProjectPage: React.FC = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         isInvalid={touched.description && !!errors.description}
-                        placeholder="Describe your project in detail..."
+                        placeholder="Опишите ваш проект в деталях..."
                         className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
                       />
                       <Form.Control.Feedback type="invalid">
                         {errors.description}
                       </Form.Control.Feedback>
                       <Form.Text className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                        Minimum 50 characters. Be detailed about what you're creating and why it matters.
+                        Минимум 50 символов. Подробно расскажите о том, что вы создаете и почему это важно.
                       </Form.Text>
                     </Form.Group>
                   </Card.Body>
@@ -180,10 +180,10 @@ export const CreateProjectPage: React.FC = () => {
                 
                 <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
                   <Card.Body>
-                    <h5 className="mb-3">Funding Details</h5>
+                    <h5 className="mb-3">Подробности финансирования</h5>
                     
                     <Form.Group className="mb-3">
-                      <Form.Label>Funding Goal ($)</Form.Label>
+                      <Form.Label>Цель финансирования ($)</Form.Label>
                       <Form.Control
                         type="number"
                         name="goalAmount"
@@ -199,7 +199,7 @@ export const CreateProjectPage: React.FC = () => {
                         {errors.goalAmount}
                       </Form.Control.Feedback>
                       <Form.Text className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                        Minimum $100. Set a realistic goal that covers your project needs.
+                        Минимум 100 долларов. Установите реалистичную цель, которая покрывает потребности вашего проекта.
                       </Form.Text>
                     </Form.Group>
                   </Card.Body>
@@ -207,10 +207,10 @@ export const CreateProjectPage: React.FC = () => {
                 
                 <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
                   <Card.Body>
-                    <h5 className="mb-3">Media</h5>
+                    <h5 className="mb-3">Медиа</h5>
                     
                     <Form.Group className="mb-4">
-                      <Form.Label>Project Images</Form.Label>
+                      <Form.Label>Фотографии проекта</Form.Label>
                       <Form.Control
                         type="file"
                         accept="image/*"
@@ -219,13 +219,13 @@ export const CreateProjectPage: React.FC = () => {
                         className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
                       />
                       <Form.Text className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                        Upload high-quality images that showcase your project. You can upload multiple images.
+                        Загружайте высококачественные изображения, демонстрирующие ваш проект. Вы можете загружать несколько изображений.
                       </Form.Text>
                     </Form.Group>
                     
                     {imagePreviewUrls.length > 0 && (
                       <div className="mb-4">
-                        <p className="mb-2">Image Previews:</p>
+                        <p className="mb-2">Предварительные просмотры изображений:</p>
                         <Row xs={2} md={3} lg={4} className="g-2">
                           {imagePreviewUrls.map((url, index) => (
                             <Col key={index}>
@@ -252,7 +252,7 @@ export const CreateProjectPage: React.FC = () => {
                     )}
                     
                     <Form.Group className="mb-3">
-                      <Form.Label>Video URL (Optional)</Form.Label>
+                      <Form.Label>Ссылка на видео(опционально)</Form.Label>  //снести видева
                       <Form.Control
                         type="url"
                         name="videoUrl"
@@ -263,7 +263,7 @@ export const CreateProjectPage: React.FC = () => {
                         className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
                       />
                       <Form.Text className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                        Add a video link to better showcase your project.
+                        Добавьте ссылку на видео, чтобы лучше продемонстрировать свой проект.
                       </Form.Text>
                     </Form.Group>
                   </Card.Body>
@@ -281,7 +281,7 @@ export const CreateProjectPage: React.FC = () => {
                     variant="primary"
                     disabled={isSubmitting || imageFiles.length === 0}
                   >
-                    {isSubmitting ? 'Creating Project...' : 'Create Project'}
+                    {isSubmitting ? 'Проект создается...' : 'Создание прокта'}
                   </Button>
                 </div>
               </Form>

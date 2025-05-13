@@ -13,8 +13,8 @@ interface DonationModalProps {
 
 const donationSchema = Yup.object().shape({
   amount: Yup.number()
-    .min(1, 'Minimum donation is $1')
-    .required('Amount is required'),
+    .min(1, 'Минимальное пожертвование - $1')
+    .required('Сумма обязательна'),
 });
 
 export const DonationModal: React.FC<DonationModalProps> = ({
@@ -28,7 +28,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
   return (
     <Modal show={show} onHide={onHide} centered>
       <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-        <Modal.Title>Support "{projectTitle}"</Modal.Title>
+        <Modal.Title>Поддержать "{projectTitle}"</Modal.Title>
       </Modal.Header>
       <Formik
         initialValues={{ amount: '' }}
@@ -38,7 +38,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
             await onDonate(Number(values.amount));
             onHide();
           } catch (error) {
-            console.error('Donation failed:', error);
+            console.error('Пожертвование не удалось:', error);
           } finally {
             setSubmitting(false);
           }
@@ -56,7 +56,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
           <Form onSubmit={handleSubmit}>
             <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
               <Form.Group className="mb-3">
-                <Form.Label>Donation Amount ($)</Form.Label>
+                <Form.Label>Сумма пожертвования ($)</Form.Label>
                 <Form.Control
                   type="number"
                   name="amount"
@@ -64,7 +64,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
                   onChange={handleChange}
                   onBlur={handleBlur}
                   isInvalid={touched.amount && !!errors.amount}
-                  placeholder="Enter amount"
+                  placeholder="Введите сумму"
                   min="1"
                   step="1"
                   className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
@@ -76,10 +76,10 @@ export const DonationModal: React.FC<DonationModalProps> = ({
             </Modal.Body>
             <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
               <Button variant={theme === 'dark' ? 'outline-light' : 'secondary'} onClick={onHide}>
-                Cancel
+                Отмена
               </Button>
               <Button type="submit" variant="primary" disabled={isSubmitting}>
-                {isSubmitting ? 'Processing...' : 'Donate'}
+                {isSubmitting ? 'В процессе...' : 'Пожертвовать'}
               </Button>
             </Modal.Footer>
           </Form>

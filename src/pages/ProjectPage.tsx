@@ -51,18 +51,18 @@ interface Review {
 
 const updateSchema = Yup.object().shape({
   text: Yup.string()
-    .min(10, 'Update must be at least 10 characters')
-    .required('Update text is required'),
+    .min(10, 'Обновление должно содержать не менее 10 символов')
+    .required('Требуется обновить текст'),
 });
 
 const reviewSchema = Yup.object().shape({
   rating: Yup.number()
-    .min(1, 'Rating must be at least 1')
-    .max(5, 'Rating cannot be more than 5')
-    .required('Rating is required'),
+    .min(1, 'Рейтинг должен быть не менее 1')
+    .max(5, 'Оценка не может быть больше 5')
+    .required('Требуется рейтинг'),
   comment: Yup.string()
-    .min(10, 'Review must be at least 10 characters')
-    .required('Review text is required'),
+    .min(10, 'Отзыв должен содержать не менее 10 символов')
+    .required('Требуется текст отзыва'),
 });
 
 export const ProjectPage: React.FC = () => {
@@ -185,7 +185,7 @@ export const ProjectPage: React.FC = () => {
     try {
       // TODO: Replace with actual API call
       // POST /api/donations
-      console.log('Processing donation:', amount);
+      console.log('Обработка пожертвований:', amount);
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       setProject(prev => prev ? {
@@ -195,7 +195,7 @@ export const ProjectPage: React.FC = () => {
       
       setShowDonateModal(false);
     } catch (error) {
-      console.error('Donation failed:', error);
+      console.error('Пожертвование не удалось:', error);
     }
   };
 
@@ -226,7 +226,7 @@ export const ProjectPage: React.FC = () => {
       setEditingUpdate(null);
       resetForm();
     } catch (error) {
-      console.error('Failed to submit update:', error);
+      console.error('Не удалось отправить обновление:', error);
     }
   };
 
@@ -267,7 +267,7 @@ export const ProjectPage: React.FC = () => {
       setEditingReview(null);
       resetForm();
     } catch (error) {
-      console.error('Failed to submit review:', error);
+      console.error('Не удалось отправить рецензию:', error);
     }
   };
 
@@ -275,11 +275,11 @@ export const ProjectPage: React.FC = () => {
     try {
       // TODO: Replace with actual API call
       // DELETE /api/updates/${updateId}
-      if (window.confirm('Are you sure you want to delete this update?')) {
+      if (window.confirm('Вы уверены, что хотите удалить это обновление?')) {
         setUpdates(prev => prev.filter(update => update.id !== updateId));
       }
     } catch (error) {
-      console.error('Failed to delete update:', error);
+      console.error('Не удалось удалить обновление:', error);
     }
   };
 
@@ -287,7 +287,7 @@ export const ProjectPage: React.FC = () => {
     try {
       // TODO: Replace with actual API call
       // DELETE /api/reviews/${reviewId}
-      if (window.confirm('Are you sure you want to delete this review?')) {
+      if (window.confirm('Вы уверены, что хотите удалить этот отзыв?')) {
         const reviewToDelete = reviews.find(r => r.id === reviewId);
         if (reviewToDelete && project) {
           const newTotalReviews = project.totalReviews - 1;
@@ -304,7 +304,7 @@ export const ProjectPage: React.FC = () => {
         setReviews(prev => prev.filter(review => review.id !== reviewId));
       }
     } catch (error) {
-      console.error('Failed to delete review:', error);
+      console.error('Не удалось удалить рецензию:', error);
     }
   };
 
@@ -338,7 +338,7 @@ export const ProjectPage: React.FC = () => {
               className="mb-3"
             >
               <ChevronLeft size={20} className="me-1" />
-              Back to Projects
+              Назад к проектам
             </Button>
             <h1 className={theme === 'dark' ? 'text-light' : ''}>{project.title}</h1>
             <div className="d-flex align-items-center gap-2 mb-3">
@@ -417,7 +417,7 @@ export const ProjectPage: React.FC = () => {
                     className="w-100 mb-3"
                     onClick={() => setShowDonateModal(true)}
                   >
-                    Support This Project
+                    Поддержите этот проект
                   </Button>
                   
                   <SocialShareButtons
@@ -433,18 +433,18 @@ export const ProjectPage: React.FC = () => {
             <Nav variant="tabs" className="mb-4">
               <Nav.Item>
                 <Nav.Link eventKey="reviews" className={theme === 'dark' ? 'text-light' : ''}>
-                  Reviews
+                  Отзывы
                 </Nav.Link>
               </Nav.Item>
               <Nav.Item>
                 <Nav.Link eventKey="updates" className={theme === 'dark' ? 'text-light' : ''}>
-                  Updates
+                  Обновления
                 </Nav.Link>
               </Nav.Item>
               {(user?.role === 'ADMIN' || isProjectCreator) && (
                 <Nav.Item>
                   <Nav.Link eventKey="donations" className={theme === 'dark' ? 'text-light' : ''}>
-                    Donations
+                    Пожертвования
                   </Nav.Link>
                 </Nav.Item>
               )}
@@ -456,7 +456,7 @@ export const ProjectPage: React.FC = () => {
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-center mb-4">
                       <div>
-                        <h5 className="mb-2">Project Reviews</h5>
+                        <h5 className="mb-2">Отзывы проекта</h5>
                         <div className="d-flex align-items-center">
                           <div className="me-2">
                             {Array.from({ length: 5 }).map((_, index) => (
@@ -469,7 +469,7 @@ export const ProjectPage: React.FC = () => {
                             ))}
                           </div>
                           <span className="fs-5 fw-bold me-2">{project.rating.toFixed(1)}</span>
-                          <span className="text-muted">({project.totalReviews} reviews)</span>
+                          <span className="text-muted">({project.totalReviews} отзывов)</span>
                         </div>
                       </div>
                       {user && !hasUserReviewed && !isProjectCreator && (
@@ -480,7 +480,7 @@ export const ProjectPage: React.FC = () => {
                             setShowReviewModal(true);
                           }}
                         >
-                          Write a Review
+                          Написать отзыв
                         </Button>
                       )}
                     </div>
@@ -545,7 +545,7 @@ export const ProjectPage: React.FC = () => {
 
                     {reviews.length === 0 && (
                       <p className={`text-center ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
-                        No reviews yet
+                        Отзывов пока нет
                       </p>
                     )}
                   </Card.Body>
@@ -556,7 +556,7 @@ export const ProjectPage: React.FC = () => {
                 <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
                   <Card.Body>
                     <div className="d-flex justify-content-between align-items-center mb-4">
-                      <h5 className="mb-0">Project Updates</h5>
+                      <h5 className="mb-0">Обновления проекта</h5>
                       {canManageUpdates && (
                         <Button
                           variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
@@ -565,7 +565,7 @@ export const ProjectPage: React.FC = () => {
                             setShowUpdateModal(true);
                           }}
                         >
-                          Add Update
+                          Добавить обновление
                         </Button>
                       )}
                     </div>
@@ -617,7 +617,7 @@ export const ProjectPage: React.FC = () => {
 
                     {updates.length === 0 && (
                       <p className={`text-center ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
-                        No updates yet
+                        Обновлений пока нет
                       </p>
                     )}
                   </Card.Body>
@@ -653,7 +653,7 @@ export const ProjectPage: React.FC = () => {
                           ))}
                           {donations.length === 0 && (
                             <tr>
-                              <td colSpan={4} className="text-center">No donations found</td>
+                              <td colSpan={4} className="text-center">Пожертвования не найдены</td>
                             </tr>
                           )}
                         </tbody>

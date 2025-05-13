@@ -48,12 +48,12 @@ export const UsersPage: React.FC = () => {
     try {
       // TODO: Replace with actual API call
       // await axios.delete(`/api/admin/users/${selectedUserId}`);
-      console.log('Deleting user:', selectedUserId);
+      console.log('Удаление пользователя:', selectedUserId);
       setShowDeleteModal(false);
       setSelectedUserId(null);
       // Refresh users list
     } catch (error) {
-      console.error('Failed to delete user:', error);
+      console.error('Не удалось удалить пользователя:', error);
     }
   };
 
@@ -68,12 +68,12 @@ export const UsersPage: React.FC = () => {
           >
             <ArrowLeft size={20} />
           </Button>
-          <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>Users Management</h2>
+          <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>Управление пользователями</h2>
         </div>
         <Form className="d-flex" style={{ width: '300px' }}>
           <Form.Control
             type="search"
-            placeholder="Search users by ID..."
+            placeholder="Искать пользователя по id"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
@@ -89,11 +89,11 @@ export const UsersPage: React.FC = () => {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Projects</th>
+              <th>Имя</th>
+              <th>Почта</th>
+              <th>Проекты</th>
               <th>Joined</th>
-              <th>Actions</th>
+              <th>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -120,7 +120,7 @@ export const UsersPage: React.FC = () => {
                       setShowDeleteModal(true);
                     }}
                   >
-                    Delete
+                    Удалить
                   </Button>
                 </td>
               </tr>
@@ -175,20 +175,20 @@ export const UsersPage: React.FC = () => {
         centered
       >
         <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-          <Modal.Title>Confirm Deletion</Modal.Title>
+          <Modal.Title>Подтвердите удаление</Modal.Title>
         </Modal.Header>
         <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
-          Are you sure you want to delete this user?
+          Вы уверены, что хотите удалить этого пользователя?
         </Modal.Body>
         <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
           <Button 
             variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'} 
             onClick={() => setShowDeleteModal(false)}
           >
-            Cancel
+            Отмена
           </Button>
           <Button variant="danger" onClick={handleDeleteUser}>
-            Delete User
+            Удалить пользователя
           </Button>
         </Modal.Footer>
       </Modal>

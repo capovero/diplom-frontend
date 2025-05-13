@@ -51,14 +51,14 @@ export const Header: React.FC = () => {
         <Navbar.Brand as={Link} to="/" className={theme === 'dark' ? 'text-light' : 'text-dark'}>
           <Home className="me-2" />
           ProjectFlow
-          {isAdminRoute && <span className="ms-2 text-warning">(Admin Mode)</span>}
+          {isAdminRoute && <span className="ms-2 text-warning">(Режим администратора)</span>}
         </Navbar.Brand>
         
         {!isAdminRoute && (
           <Form className="d-flex header__search mx-auto">
             <Form.Control
               type="search"
-              placeholder="Search projects..."
+              placeholder="Поиск проектов..."
               value={searchTerm}
               onChange={handleSearch}
               className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
@@ -89,7 +89,7 @@ export const Header: React.FC = () => {
                     onClick={() => navigate(isAdminRoute ? '/' : '/admin')}
                   >
                     <Settings size={18} className="me-1" />
-                    {isAdminRoute ? 'Exit Admin Mode' : 'Admin Panel'}
+                    {isAdminRoute ? 'Выйти из режима администратора' : 'Панель администратора'}
                   </Button>
                 )}
                 {!isAdminRoute && (
@@ -99,7 +99,7 @@ export const Header: React.FC = () => {
                       className="me-2"
                       onClick={() => navigate('/create-project')}
                     >
-                      Create Project
+                      Создать проект
                     </Button>
                     <Button
                       variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
@@ -107,7 +107,7 @@ export const Header: React.FC = () => {
                       onClick={() => navigate(`/profile/${user.id}`)}
                     >
                       <User size={18} className="me-1" />
-                      Profile
+                      Профиль
                     </Button>
                   </>
                 )}
@@ -116,7 +116,7 @@ export const Header: React.FC = () => {
                   className={theme === 'dark' ? 'text-light' : 'text-dark'}
                   onClick={logout}
                 >
-                  Logout
+                  Выйти
                 </Button>
               </>
             ) : (
@@ -125,7 +125,7 @@ export const Header: React.FC = () => {
                   <BsForm.Check 
                     type="switch"
                     id="mock-user-switch"
-                    label="Test User"
+                    label="Тест пользователя"
                     checked={isMockUser}
                     onChange={handleMockUserChange}
                     className={theme === 'dark' ? 'text-light me-3' : ''}
@@ -133,7 +133,7 @@ export const Header: React.FC = () => {
                   <BsForm.Check 
                     type="switch"
                     id="mock-admin-switch"
-                    label="Test Admin"
+                    label="Тест администратора"
                     checked={isMockAdmin}
                     onChange={handleMockAdminChange}
                     className={theme === 'dark' ? 'text-light' : ''}
@@ -144,13 +144,13 @@ export const Header: React.FC = () => {
                   className="me-2"
                   onClick={() => navigate('/login')}
                 >
-                  Login
+                  Войти
                 </Button>
                 <Button
                   variant={theme === 'dark' ? 'light' : 'primary'}
                   onClick={() => navigate('/register')}
                 >
-                  Register
+                  Зарегистрироваться
                 </Button>
               </>
             )}

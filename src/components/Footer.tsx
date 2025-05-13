@@ -12,28 +12,28 @@ export const Footer: React.FC = () => {
 
   const modalContent = {
     about: {
-      title: 'About ProjectHub',
+      title: 'О сайте ProjectFlow',
       content: (
         <>
-          <h5>Our Mission</h5>
+          <h5>Наша миссия</h5>
           <p>
-            ProjectHub is a crowdfunding platform dedicated to connecting innovative creators with passionate supporters. 
-            We believe in the power of community-driven funding to bring groundbreaking ideas to life.
+              ProjectFlow - это краудфандинговая платформа, призванная соединить инновационных авторов с неравнодушными сторонниками.
+              Мы верим в силу финансирования, осуществляемого сообществом, для воплощения новаторских идей в жизнь.
           </p>
           
-          <h5>What We Do</h5>
+          <h5>Что мы делаем</h5>
           <p>
-            We provide a secure and transparent platform where creators can showcase their projects and receive funding 
-            from supporters worldwide. Our platform supports various project categories, from technology and arts to 
-            social initiatives and environmental causes.
+              Мы предоставляем безопасную и прозрачную платформу, на которой авторы могут демонстрировать свои проекты и получать финансирование
+              от сторонников по всему миру. Наша платформа поддерживает различные категории проектов, от технологий и искусства до
+              социальных инициатив и экологических проектов.
           </p>
           
-          <h5>Our Values</h5>
+          <h5>Наши ценности</h5>
           <ul>
-            <li>Transparency in all transactions and project updates</li>
-            <li>Support for innovative and impactful projects</li>
-            <li>Building strong communities around shared interests</li>
-            <li>Protecting both creators and supporters</li>
+            <li>Прозрачность всех операций и обновлений проекта</li>
+            <li>Поддержка инновационных и эффективных проектов</li>
+            <li>Создание сильных сообществ на основе общих интересов</li>
+            <li>Защита как создателей, так и сторонников</li>
           </ul>
         </>
       )
@@ -42,32 +42,32 @@ export const Footer: React.FC = () => {
       title: 'Terms of Service',
       content: (
         <>
-          <h5>1. User Agreement</h5>
+          <h5>1. Пользовательское соглашение</h5>
           <p>
-            By using ProjectHub, you agree to these terms and conditions. Users must be at least 18 years old 
-            to create an account or make contributions.
+              Используя ProjectFlow, вы соглашаетесь с этими правилами и условиями. Пользователям должно быть не менее 18 лет
+              для создания учетной записи или внесения вклада.
           </p>
           
-          <h5>2. Project Guidelines</h5>
+          <h5>2. Руководство по проекту</h5>
           <p>
-            Projects must:
+              Проекты должны:
           </p>
           <ul>
-            <li>Be clearly described and transparent about goals</li>
-            <li>Not violate any laws or regulations</li>
-            <li>Provide regular updates to backers</li>
-            <li>Deliver promised rewards or refund contributions</li>
+            <li>Четко описывайте цели и будьте прозрачны</li>
+            <li>Не нарушать никаких законов и правил</li>
+            <li>Регулярно обновляйте информацию для сторонников</li>
+            <li>Предоставление обещанных вознаграждений или возврат взносов</li>
           </ul>
           
-          <h5>3. Funding Terms</h5>
+          <h5>3. Условия финансирования</h5>
           <p>
-            All contributions are final once a project is successfully funded. Creators are legally obligated 
-            to fulfill their stated project goals or provide refunds.
+              Все взносы являются окончательными после успешного финансирования проекта. Создатели юридически обязаны
+              выполнить заявленные цели проекта или вернуть деньги.
           </p>
           
-          <h5>4. Platform Fees</h5>
+          <h5>4. Плата за пользование платформой</h5>
           <p>
-            ProjectHub charges a 5% platform fee on successfully funded projects, plus payment processing fees.
+              ProjectFlow взимает 5-процентную комиссию с успешно профинансированных проектов, а также комиссию за обработку платежей.
           </p>
         </>
       )
@@ -76,43 +76,42 @@ export const Footer: React.FC = () => {
       title: 'Privacy Policy',
       content: (
         <>
-          <h5>1. Information We Collect</h5>
+          <h5>1. Информация, которую мы собираем</h5>
           <p>
-            We collect:
+              Мы собираем информацию:
           </p>
           <ul>
-            <li>Account information (name, email, password)</li>
-            <li>Payment information (processed securely through our payment providers)</li>
-            <li>Usage data and analytics</li>
-            <li>Communication preferences</li>
+            <li>Информация об учетной записи (имя, электронная почта, пароль)</li>
+            <li>Платежная информация (обрабатывается в безопасном режиме через наших платежных провайдеров)</li>
+            <li>Данные об использовании и аналитика</li>
+            <li>Коммуникативные предпочтения</li>
           </ul>
           
-          <h5>2. How We Use Your Information</h5>
+          <h5>2. Как мы используем вашу информацию</h5>
           <p>
-            Your information is used to:
+              Ваша информация используется для:
           </p>
           <ul>
-            <li>Process transactions and maintain your account</li>
-            <li>Send important updates about projects you've backed</li>
-            <li>Improve our platform and user experience</li>
-            <li>Comply with legal obligations</li>
+            <li>Обработка транзакций и ведение вашего счета</li>
+            <li>Улучшить нашу платформу и пользовательский опыт</li>
+            <li>Выполнять юридические обязательства</li>
           </ul>
           
-          <h5>3. Data Security</h5>
+          <h5>3. Безопасность данных</h5>
           <p>
-            We implement industry-standard security measures to protect your personal information. 
-            All payment data is encrypted and processed through secure payment providers.
+              Мы применяем стандартные меры безопасности для защиты вашей личной информации.
+              Все платежные данные шифруются и обрабатываются через надежных поставщиков платежей.
           </p>
           
-          <h5>4. Your Rights</h5>
+          <h5>4. Ваши права</h5>
           <p>
-            You have the right to:
+              Вы имеете право:
           </p>
           <ul>
-            <li>Access your personal data</li>
-            <li>Request corrections or deletion of your data</li>
-            <li>Opt-out of marketing communications</li>
-            <li>Request a copy of your data</li>
+            <li>Доступ к вашим личным данным</li>
+            <li>Запрашивать исправления или удаление ваших данных</li>
+            <li>Отказ от маркетинговых сообщений</li>
+            <li>Запросите копию ваших данных</li>
           </ul>
         </>
       )
@@ -125,9 +124,9 @@ export const Footer: React.FC = () => {
         <Container>
           <Row className="justify-content-between align-items-center">
             <Col md={4}>
-              <h5 className={`mb-3 ${textClass}`}>ProjectHub</h5>
+              <h5 className={`mb-3 ${textClass}`}>ProjectFlow</h5>
               <p className={`mb-0 ${mutedClass}`}>
-                Connecting innovators with supporters to bring great ideas to life.
+                  Соединяет новаторов со сторонниками, чтобы воплотить великие идеи в жизнь.
               </p>
             </Col>
             <Col md={4} className="text-md-center py-3 py-md-0">
@@ -140,7 +139,7 @@ export const Footer: React.FC = () => {
                     setShowModal('about');
                   }}
                 >
-                  About
+                  О сайте
                 </a>
                 <a 
                   href="#" 
@@ -150,7 +149,7 @@ export const Footer: React.FC = () => {
                     setShowModal('terms');
                   }}
                 >
-                  Terms
+                    Условия
                 </a>
                 <a 
                   href="#" 
@@ -160,7 +159,7 @@ export const Footer: React.FC = () => {
                     setShowModal('privacy');
                   }}
                 >
-                  Privacy
+                    Конфиденциальность
                 </a>
               </div>
             </Col>
@@ -195,7 +194,7 @@ export const Footer: React.FC = () => {
         </Modal.Body>
         <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
           <Button variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'} onClick={() => setShowModal(null)}>
-            Close
+            Закрыть
           </Button>
         </Modal.Footer>
       </Modal>

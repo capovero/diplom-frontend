@@ -30,10 +30,10 @@ export const SocialShareButtons: React.FC<SocialShareButtonsProps> = ({
   const copyToClipboard = () => {
     navigator.clipboard.writeText(currentUrl)
       .then(() => {
-        alert('Link copied to clipboard!');
+        alert('Ссылка скопирована в буфер!');
       })
       .catch(err => {
-        console.error('Failed to copy link: ', err);
+        console.error('Ошибка при копировании ссылки: ', err);
       });
   };
   
@@ -43,7 +43,7 @@ export const SocialShareButtons: React.FC<SocialShareButtonsProps> = ({
         variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
         size="sm"
         onClick={() => openShareWindow(shareLinks.facebook)}
-        aria-label="Share on Facebook"
+        aria-label="Поделиться на фейсбуке"
       >
         <Facebook size={16} className="me-1" />
         Facebook
@@ -53,7 +53,7 @@ export const SocialShareButtons: React.FC<SocialShareButtonsProps> = ({
         variant={theme === 'dark' ? 'outline-light' : 'outline-info'}
         size="sm"
         onClick={() => openShareWindow(shareLinks.twitter)}
-        aria-label="Share on Twitter"
+        aria-label="Поделиться в твиттере"
       >
         <Twitter size={16} className="me-1" />
         Twitter
@@ -63,7 +63,7 @@ export const SocialShareButtons: React.FC<SocialShareButtonsProps> = ({
         variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
         size="sm"
         onClick={() => openShareWindow(shareLinks.linkedin)}
-        aria-label="Share on LinkedIn"
+        aria-label="Поделиться на LinkedIn"
       >
         <Linkedin size={16} className="me-1" />
         LinkedIn
@@ -73,10 +73,10 @@ export const SocialShareButtons: React.FC<SocialShareButtonsProps> = ({
         variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
         size="sm"
         onClick={copyToClipboard}
-        aria-label="Copy link"
+        aria-label="Копировать ссылку"
       >
         <LinkIcon size={16} className="me-1" />
-        Copy Link
+          Копировать ссылку
       </Button>
     </div>
   );

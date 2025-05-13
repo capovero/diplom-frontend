@@ -88,7 +88,7 @@ export const ProjectDetailsPage: React.FC = () => {
       setProject(prev => prev ? { ...prev, status: newStatus } : null);
       setShowStatusModal(false);
     } catch (error) {
-      console.error('Failed to update project status:', error);
+      console.error('Не удалось обновить статус проекта:', error);
     }
   };
 
@@ -97,7 +97,7 @@ export const ProjectDetailsPage: React.FC = () => {
       <Container className="py-4">
         <div className="text-center">
           <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
+            <span className="visually-hidden">Загрузка...</span>
           </div>
         </div>
       </Container>
@@ -107,7 +107,7 @@ export const ProjectDetailsPage: React.FC = () => {
   if (!project) {
     return (
       <Container className="py-4">
-        <div className="text-center">Project not found</div>
+        <div className="text-center">Проект не найден</div>
       </Container>
     );
   }
@@ -122,7 +122,7 @@ export const ProjectDetailsPage: React.FC = () => {
         >
           <ArrowLeft size={20} />
         </Button>
-        <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>Project Details</h2>
+        <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>Детали проектов</h2>
       </div>
 
       <Tab.Container defaultActiveKey="details">
@@ -132,7 +132,7 @@ export const ProjectDetailsPage: React.FC = () => {
               eventKey="details"
               className={theme === 'dark' ? 'text-light' : ''}
             >
-              Details
+              Детали
             </Nav.Link>
           </Nav.Item>
           <Nav.Item>
@@ -140,7 +140,7 @@ export const ProjectDetailsPage: React.FC = () => {
               eventKey="donations"
               className={theme === 'dark' ? 'text-light' : ''}
             >
-              Donations
+              Пожертвования
             </Nav.Link>
           </Nav.Item>
         </Nav>
@@ -162,19 +162,19 @@ export const ProjectDetailsPage: React.FC = () => {
                         variant="primary"
                         onClick={() => setShowStatusModal(true)}
                       >
-                        Change Status
+                        Изменить статус
                       </Button>
                     </div>
 
                     <div className="mb-4">
-                      <h5>Description</h5>
+                      <h5>Описание</h5>
                       <p className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
                         {project.description}
                       </p>
                     </div>
 
                     <div className="mb-4">
-                      <h5>Images</h5>
+                      <h5>Фотографии</h5>
                       <Row xs={1} md={2} className="g-3">
                         {project.images.map((image, index) => (
                           <Col key={index}>
@@ -194,23 +194,23 @@ export const ProjectDetailsPage: React.FC = () => {
               <Col lg={4}>
                 <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
                   <Card.Body>
-                    <h5 className="card-title mb-4">Project Information</h5>
+                    <h5 className="card-title mb-4">Информация о проекте</h5>
                     <dl>
-                      <dt>Status</dt>
+                      <dt>Статус</dt>
                       <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>{project.status}</dd>
                       
-                      <dt>Category</dt>
+                      <dt>Категория</dt>
                       <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>{project.category}</dd>
                       
                       <dt>Creator</dt>
                       <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>{project.creator.name}</dd>
                       
-                      <dt>Created</dt>
+                      <dt>Создан</dt>
                       <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
                         {new Date(project.createdAt).toLocaleDateString()}
                       </dd>
                       
-                      <dt>Last Updated</dt>
+                      <dt>Последнее обновление</dt>
                       <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
                         {new Date(project.updatedAt).toLocaleDateString()}
                       </dd>
@@ -224,14 +224,14 @@ export const ProjectDetailsPage: React.FC = () => {
           <Tab.Pane eventKey="donations">
             <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
               <Card.Body>
-                <h5 className="mb-4">Project Donations</h5>
+                <h5 className="mb-4">Пожертвования в проект</h5>
                 <Table responsive className={theme === 'dark' ? 'table-dark' : ''}>
                   <thead>
                     <tr>
                       <th>ID</th>
-                      <th>Donor</th>
-                      <th>Amount</th>
-                      <th>Date</th>
+                      <th>Донор</th>
+                      <th>Сумма</th>
+                      <th>Дата</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -245,7 +245,7 @@ export const ProjectDetailsPage: React.FC = () => {
                     ))}
                     {donations.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="text-center">No donations found</td>
+                        <td colSpan={4} className="text-center">Пожертвований не найдено</td>
                       </tr>
                     )}
                   </tbody>
@@ -262,25 +262,25 @@ export const ProjectDetailsPage: React.FC = () => {
         centered
       >
         <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-          <Modal.Title>Change Project Status</Modal.Title>
+          <Modal.Title>Изменить статус проекта</Modal.Title>
         </Modal.Header>
         <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
           <Form.Group>
-            <Form.Label>New Status</Form.Label>
+            <Form.Label>Новый статус</Form.Label>
             <Form.Select
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value as Project['status'])}
               className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
             >
-              <option value="Pending">Pending</option>
-              <option value="Approved">Approved</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Active">Active</option>
-              <option value="Completed">Completed</option>
+              <option value="Pending">В ожидании</option>
+              <option value="Approved">Одобрено</option>
+              <option value="Rejected">Отклонено</option>
+              <option value="Active">Активный</option>
+              <option value="Completed">Завершено</option>
             </Form.Select>
           </Form.Group>
           <p className={`mt-3 mb-0 ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
-            Are you sure you want to change the project status?
+            Вы уверены, что хотите изменить статус проекта?
           </p>
         </Modal.Body>
         <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
@@ -288,10 +288,10 @@ export const ProjectDetailsPage: React.FC = () => {
             variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
             onClick={() => setShowStatusModal(false)}
           >
-            Cancel
+            Отмена
           </Button>
           <Button variant="primary" onClick={handleStatusUpdate}>
-            Update Status
+            Обновить статус
           </Button>
         </Modal.Footer>
       </Modal>

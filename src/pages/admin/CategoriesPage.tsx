@@ -49,7 +49,7 @@ export const CategoriesPage: React.FC = () => {
       ));
       setShowEditModal(false);
     } catch (error) {
-      console.error('Failed to update category:', error);
+      console.error('Не удалось обновить категорию:', error);
     }
   };
 
@@ -60,7 +60,7 @@ export const CategoriesPage: React.FC = () => {
       setCategories(prev => prev.filter(cat => cat.id !== selectedCategory.id));
       setShowDeleteModal(false);
     } catch (error) {
-      console.error('Failed to delete category:', error);
+      console.error('Не удалось удалить категорию:', error);
     }
   };
 
@@ -75,7 +75,7 @@ export const CategoriesPage: React.FC = () => {
       setShowCreateModal(false);
       setEditName('');
     } catch (error) {
-      console.error('Failed to create category:', error);
+      console.error('Не удалось создать категорию:', error);
     }
   };
 
@@ -89,7 +89,7 @@ export const CategoriesPage: React.FC = () => {
         >
           <ArrowLeft size={20} />
         </Button>
-        <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>Categories</h2>
+        <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>Категории</h2>
       </div>
 
       <ListGroup className="mb-4">
@@ -108,14 +108,14 @@ export const CategoriesPage: React.FC = () => {
                 className="me-2"
                 onClick={() => handleEdit(category)}
               >
-                Edit
+                Изменить
               </Button>
               <Button
                 variant="outline-danger"
                 size="sm"
                 onClick={() => handleDelete(category)}
               >
-                Delete
+                Удалить
               </Button>
             </div>
           </ListGroup.Item>
@@ -130,7 +130,7 @@ export const CategoriesPage: React.FC = () => {
         }}
       >
         <Plus size={20} className="me-2" />
-        Create Category
+        Создать категорию
       </Button>
 
       {/* Edit Modal */}
@@ -140,7 +140,7 @@ export const CategoriesPage: React.FC = () => {
         centered
       >
         <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-          <Modal.Title>Edit Category</Modal.Title>
+          <Modal.Title>Изменить категорию</Modal.Title>
         </Modal.Header>
         <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
           <input
@@ -148,7 +148,7 @@ export const CategoriesPage: React.FC = () => {
             className={`form-control ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
-            placeholder="Category name"
+            placeholder="Название категории"
           />
         </Modal.Body>
         <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
@@ -156,10 +156,10 @@ export const CategoriesPage: React.FC = () => {
             variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
             onClick={() => setShowEditModal(false)}
           >
-            Cancel
+            Отмена
           </Button>
           <Button variant="primary" onClick={handleEditSubmit}>
-            Save Changes
+            Сохранить изменения
           </Button>
         </Modal.Footer>
       </Modal>
@@ -171,20 +171,20 @@ export const CategoriesPage: React.FC = () => {
         centered
       >
         <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-          <Modal.Title>Confirm Deletion</Modal.Title>
+          <Modal.Title>Подтвердите удаление</Modal.Title>
         </Modal.Header>
         <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
-          Are you sure you want to delete the category "{selectedCategory?.name}"?
+          Вы уверены, что хотите удалить категорию "{selectedCategory?.name}"?
         </Modal.Body>
         <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
           <Button
             variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
             onClick={() => setShowDeleteModal(false)}
           >
-            Cancel
+            Отмена
           </Button>
           <Button variant="danger" onClick={handleDeleteConfirm}>
-            Delete Category
+            Удалить категорию
           </Button>
         </Modal.Footer>
       </Modal>
@@ -196,7 +196,7 @@ export const CategoriesPage: React.FC = () => {
         centered
       >
         <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-          <Modal.Title>Create Category</Modal.Title>
+          <Modal.Title>Создать категорию</Modal.Title>
         </Modal.Header>
         <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
           <input
@@ -204,7 +204,7 @@ export const CategoriesPage: React.FC = () => {
             className={`form-control ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
-            placeholder="Category name"
+            placeholder="Название категории"
           />
         </Modal.Body>
         <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
@@ -212,10 +212,10 @@ export const CategoriesPage: React.FC = () => {
             variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
             onClick={() => setShowCreateModal(false)}
           >
-            Cancel
+            Отмена
           </Button>
           <Button variant="primary" onClick={handleCreateSubmit}>
-            Create Category
+            Создать категорию
           </Button>
         </Modal.Footer>
       </Modal>

@@ -70,7 +70,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           )}
           <ProgressBar now={progress} label={`${progress}%`} className="mb-3" />
           <Link to={`/project/${id}`} className="btn btn-outline-primary">
-            View Project
+            Смотреть проект
           </Link>
         </Card.Body>
       </Card>

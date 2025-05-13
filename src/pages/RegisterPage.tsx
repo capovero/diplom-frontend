@@ -8,14 +8,14 @@ import { useTheme } from '../context/ThemeContext';
 
 const registerSchema = Yup.object().shape({
   username: Yup.string()
-    .min(3, 'Username must be at least 3 characters')
-    .required('Username is required'),
+    .min(3, 'Имя пользователя должно состоять не менее чем из 3 символов')
+    .required('Имя пользователя обязательно'),
   email: Yup.string()
-    .email('Invalid email address')
-    .required('Email is required'),
+    .email('Неверный адрес электронной почты')
+    .required('Электронная почта обязательна'),
   password: Yup.string()
-    .min(6, 'Password must be at least 6 characters')
-    .required('Password is required')
+    .min(6, 'Пароль должен состоять не менее чем из 6 символов')
+    .required('Пароль обязателен')
 });
 
 export const RegisterPage: React.FC = () => {
@@ -25,7 +25,7 @@ export const RegisterPage: React.FC = () => {
   return (
     <Container className="py-5">
       <div className="mx-auto" style={{ maxWidth: '500px' }}>
-        <h1 className={`text-center mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Register</h1>
+        <h1 className={`text-center mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Регистрация</h1>
         
         <Formik
           initialValues={{ username: '', email: '', password: '' }}
@@ -55,7 +55,7 @@ export const RegisterPage: React.FC = () => {
               {status && <Alert variant="danger">{status}</Alert>}
               
               <Form.Group className="mb-3">
-                <Form.Label>Username</Form.Label>
+                <Form.Label>Имя пользователя</Form.Label>
                 <Form.Control
                   type="text"
                   name="username"
@@ -72,7 +72,7 @@ export const RegisterPage: React.FC = () => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Email</Form.Label>
+                <Form.Label>Почта</Form.Label>
                 <Form.Control
                   type="email"
                   name="email"
@@ -88,7 +88,7 @@ export const RegisterPage: React.FC = () => {
               </Form.Group>
 
               <Form.Group className="mb-3">
-                <Form.Label>Password</Form.Label>
+                <Form.Label>Пароль</Form.Label>
                 <Form.Control
                   type="password"
                   name="password"
@@ -109,7 +109,7 @@ export const RegisterPage: React.FC = () => {
                 className="w-100 mb-3"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Registering...' : 'Register'}
+                {isSubmitting ? 'Регистрация...' : 'Регистрация'}
               </Button>
 
               <div className="text-center">
@@ -117,7 +117,7 @@ export const RegisterPage: React.FC = () => {
                   to="/login" 
                   className={`text-decoration-none ${theme === 'dark' ? 'text-light' : ''}`}
                 >
-                  Already have an account? Login
+                  У вас уже есть аккаунт? Войдите!
                 </Link>
               </div>
             </Form>

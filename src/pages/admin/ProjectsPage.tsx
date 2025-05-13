@@ -67,12 +67,12 @@ export const ProjectsPage: React.FC = () => {
     try {
       // TODO: Replace with actual API call
       // await axios.delete(`/api/admin/projects/${selectedProjectId}`);
-      console.log('Deleting project:', selectedProjectId);
+      console.log('Удаление проекта:', selectedProjectId);
       setProjects(prev => prev.filter(p => p.id !== selectedProjectId));
       setShowDeleteModal(false);
       setSelectedProjectId(null);
     } catch (error) {
-      console.error('Failed to delete project:', error);
+      console.error('Ошибка при удалении проекта', error);
     }
   };
 
@@ -98,7 +98,7 @@ export const ProjectsPage: React.FC = () => {
           >
             <ArrowLeft size={20} />
           </Button>
-          <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>Projects Management</h2>
+          <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>Управление проектами</h2>
         </div>
       </div>
 
@@ -108,7 +108,7 @@ export const ProjectsPage: React.FC = () => {
             <Form.Group style={{ flex: 2, minWidth: '200px' }}>
               <Form.Control
                 type="search"
-                placeholder="Search by ID, title, or creator..."
+                placeholder="Поиск проекта"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
@@ -121,12 +121,12 @@ export const ProjectsPage: React.FC = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
               >
-                <option value="">All Statuses</option>
-                <option value="Pending">Pending</option>
-                <option value="Approved">Approved</option>
-                <option value="Rejected">Rejected</option>
-                <option value="Active">Active</option>
-                <option value="Completed">Completed</option>
+                <option value="">Все статусы</option>
+                <option value="Pending">Рассматривается</option>
+                <option value="Approved">Одобрено</option>
+                <option value="Rejected">Отклонено</option>
+                <option value="Active">Активно</option>
+                <option value="Completed">Завершено</option>
               </Form.Select>
             </Form.Group>
 
@@ -162,7 +162,7 @@ export const ProjectsPage: React.FC = () => {
                     variant="primary"
                     onClick={() => navigate(`/admin/projects/${project.id}`)}
                   >
-                    View Details
+                    Смотреть детали
                   </Button>
                   <Button
                     variant="danger"
@@ -182,7 +182,7 @@ export const ProjectsPage: React.FC = () => {
 
       {projects.length === 0 && (
         <div className="text-center py-5">
-          <p className={theme === 'dark' ? 'text-light' : ''}>No projects found</p>
+          <p className={theme === 'dark' ? 'text-light' : ''}>Проекты не найдены</p>
         </div>
       )}
 
@@ -202,20 +202,20 @@ export const ProjectsPage: React.FC = () => {
         centered
       >
         <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-          <Modal.Title>Confirm Deletion</Modal.Title>
+          <Modal.Title>Подтвердите удаление</Modal.Title>
         </Modal.Header>
         <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
-          Are you sure you want to delete this project?
+          Вы уверены, что хотите удалить этот проект?
         </Modal.Body>
         <Modal.Footer className={theme === 'dark' ? 'bg-dark border-secondary' : ''}>
           <Button 
             variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'} 
             onClick={() => setShowDeleteModal(false)}
           >
-            Cancel
+            Отмена
           </Button>
           <Button variant="danger" onClick={handleDeleteProject}>
-            Delete Project
+            Удалить проект
           </Button>
         </Modal.Footer>
       </Modal>
