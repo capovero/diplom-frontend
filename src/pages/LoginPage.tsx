@@ -5,6 +5,7 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import type { AxiosError } from 'axios';
 
 const loginSchema = Yup.object().shape({
     userName: Yup.string().required('Имя пользователя обязательно'),
@@ -27,17 +28,26 @@ export const LoginPage: React.FC = () => {
                         try {
                             await login(values.userName, values.password);
                             navigate('/');
-                        } catch (err: unknown) {
-                            const error = err as { response?: { data?: { message?: string } } };
-                            setStatus(error?.response?.data?.message || 'Неверные учётные данные');
+                        } catch (error) {
+                            const axiosError = error as AxiosError<{ message?: string }>;
+                            setStatus(
+                                axiosError.response?.data?.message ||
+                                'Неверные имя пользователя или пароль'
+                            );
                         } finally {
                             setSubmitting(false);
                         }
                     }}
                 >
                     {({
-                          values, errors, touched, status,
-                          handleChange, handleBlur, handleSubmit, isSubmitting,
+                          values,
+                          errors,
+                          touched,
+                          status,
+                          handleChange,
+                          handleBlur,
+                          handleSubmit,
+                          isSubmitting,
                       }) => (
                         <Form
                             onSubmit={handleSubmit}
@@ -46,6 +56,7 @@ export const LoginPage: React.FC = () => {
                             }`}
                         >
                             {status && <Alert variant="danger">{status}</Alert>}
+
                             <Form.Group className="mb-3">
                                 <Form.Label>Имя пользователя</Form.Label>
                                 <Form.Control
@@ -55,13 +66,13 @@ export const LoginPage: React.FC = () => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     isInvalid={touched.userName && !!errors.userName}
-                                    autoFocus
                                     className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {errors.userName}
                                 </Form.Control.Feedback>
                             </Form.Group>
+
                             <Form.Group className="mb-3">
                                 <Form.Label>Пароль</Form.Label>
                                 <Form.Control
@@ -77,12 +88,19 @@ export const LoginPage: React.FC = () => {
                                     {errors.password}
                                 </Form.Control.Feedback>
                             </Form.Group>
-                            <Button type="submit" variant="primary" className="w-100 mb-3" disabled={isSubmitting}>
-                                {isSubmitting ? 'Происходит вход...' : 'Вход'}
+
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                className="w-100 mb-3"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? 'Вход...' : 'Войти'}
                             </Button>
+
                             <div className="text-center">
                                 <Link to="/register" className={`${theme === 'dark' ? 'text-light' : ''}`}>
-                                    У вас еще нет аккаунта? Зарегистрируйтесь!
+                                    Нет аккаунта? Зарегистрируйтесь
                                 </Link>
                             </div>
                         </Form>

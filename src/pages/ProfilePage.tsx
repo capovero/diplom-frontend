@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Nav, Tab, Badge, Button, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Nav, Tab, Badge, Button, Form, Alert } from 'react-bootstrap';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ProjectCard } from '../components/ProjectCard';
@@ -7,25 +7,35 @@ import { Footer } from '../components/Footer';
 import { useTheme } from '../context/ThemeContext';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
+import axios from 'axios';
+
+// Типы и интерфейсы
+type Status = 'Pending' | 'Active' | 'Completed' | 'Rejected';
 
 interface UserProfile {
   id: string;
-  name: string;
+  userName: string;
   email: string;
+  role: string;
 }
 
-interface Project {
-  id: string;
+interface ApiProject {
+  id: number;
   title: string;
   description: string;
-  image: string;
+  goalAmount: number;
+  collectedAmount: number;
+  createdAt: string;
+  categoryName?: string;
+  status: Status;
+  mediaFiles: string[];
+  averageRating: number | null;
+}
+
+interface Project extends ApiProject {
   progress: number;
   category: string;
-  status: string;
-  creator: {
-    id: string;
-    name: string;
-  };
+  image: string;
 }
 
 interface Donation {
@@ -36,8 +46,9 @@ interface Donation {
   date: string;
 }
 
+// Валидационная схема
 const profileSchema = Yup.object().shape({
-  name: Yup.string()
+  userName: Yup.string()
       .min(2, 'Имя должно состоять не менее чем из 2 символов')
       .required('Имя обязательно'),
   email: Yup.string()
@@ -47,80 +58,97 @@ const profileSchema = Yup.object().shape({
 
 export const ProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { theme } = useTheme();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   const isOwnProfile = user?.id === userId;
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    const mockProfile = {
-      id: userId || '',
-      name: 'John Doe',
-      email: 'john@example.com'
+    const fetchProfile = async () => {
+      try {
+        // Загрузка профиля
+        const profileResponse = isOwnProfile
+            ? await axios.get<UserProfile>('/api/users/me')
+            : await axios.get<UserProfile>(`/api/users/${userId}`);
+
+        setProfile(profileResponse.data);
+
+        // Загрузка проектов
+        const projectsResponse = isOwnProfile
+            ? await axios.get<ApiProject[]>('/api/projects/my')
+            : await axios.get<ApiProject[]>(`/api/projects?userId=${userId}`);
+
+        const processedProjects = projectsResponse.data.map(project => ({
+          ...project,
+          progress: (project.collectedAmount / project.goalAmount) * 100,
+          category: project.categoryName || 'Без категории',
+          image: project.mediaFiles[0] || '/placeholder-image.jpg'
+        }));
+
+        setProjects(processedProjects);
+
+        // Загрузка донатов
+        if (isOwnProfile) {
+          try {
+            const donationsResponse = await axios.get<Donation[]>('/api/donation/personal-donations');
+            setDonations(donationsResponse.data.map(d => ({
+              id: d.id.toString(),
+              projectId: d.projectId.toString(),
+              projectTitle: d.projectTitle,
+              amount: d.amount,
+              date: d.date
+            })));
+          } catch (donationError) {
+            if (axios.isAxiosError(donationError) && donationError.response?.status === 404) {
+              setDonations([]);
+            } else {
+              console.error('Ошибка загрузки донатов:', donationError);
+            }
+          }
+        }
+
+      } catch (err) {
+        console.error('Ошибка загрузки:', err);
+        setError(
+            axios.isAxiosError(err)
+                ? err.response?.data?.message || 'Не удалось загрузить данные'
+                : 'Неизвестная ошибка'
+        );
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const mockProjects = [
-      {
-        id: '1',
-        title: 'E-commerce Platform',
-        description: 'A modern e-commerce solution',
-        image: 'https://images.unsplash.com/photo-1661956602116-aa6865609028?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        progress: 75,
-        category: 'Web Development',
-        status: 'Active',
-        creator: {
-          id: userId || '',
-          name: mockProfile.name
-        }
-      },
-      {
-        id: '2',
-        title: 'Mobile App',
-        description: 'A revolutionary mobile application',
-        image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-        progress: 30,
-        category: 'Mobile Apps',
-        status: 'Pending',
-        creator: {
-          id: userId || '',
-          name: mockProfile.name
-        }
-      }
-    ];
+    if (!authLoading) {
+      fetchProfile().catch(error => {
+        console.error('Unhandled error:', error);
+        setError('Произошла непредвиденная ошибка');
+      });
+    }
+  }, [userId, isOwnProfile, authLoading]);
 
-    const mockDonations = [
-      {
-        id: 'd1',
-        projectId: '3',
-        projectTitle: 'Fitness Tracking App',
-        amount: 50,
-        date: '2024-03-15T14:30:00Z'
-      },
-      {
-        id: 'd2',
-        projectId: '4',
-        projectTitle: 'Smart Home Dashboard',
-        amount: 100,
-        date: '2024-03-10T09:15:00Z'
-      }
-    ];
+  const handleUpdateProfile = async (values: { userName: string; email: string }) => {
+    try {
+      const response = await axios.put('/api/users', values);
+      setProfile(prev => ({
+        ...prev!,
+        ...response.data
+      }));
+      setIsEditing(false);
+    } catch (err) {
+      console.error('Ошибка при обновлении профиля:', err);
+      setError('Не удалось обновить профиль');
+    }
+  };
 
-    setProfile(mockProfile);
-    setProjects(mockProjects.filter(project =>
-        isOwnProfile || project.status === 'Active'
-    ));
-    setDonations(mockDonations);
-    setLoading(false);
-  }, [userId, isOwnProfile]);
-
-  if (loading) {
+  if (authLoading || loading) {
     return (
         <Container className="py-5">
           <div className="text-center">
@@ -128,6 +156,14 @@ export const ProfilePage: React.FC = () => {
               <span className="visually-hidden">Загрузка...</span>
             </div>
           </div>
+        </Container>
+    );
+  }
+
+  if (error) {
+    return (
+        <Container className="py-5">
+          <Alert variant="danger">{error}</Alert>
         </Container>
     );
   }
@@ -149,21 +185,11 @@ export const ProfilePage: React.FC = () => {
                 {isEditing ? (
                     <Formik
                         initialValues={{
-                          name: profile.name,
+                          userName: profile.userName,
                           email: profile.email
                         }}
                         validationSchema={profileSchema}
-                        onSubmit={async (values, { setSubmitting }) => {
-                          try {
-                            // TODO: Replace with actual API call
-                            setProfile(prev => prev ? { ...prev, ...values } : null);
-                            setIsEditing(false);
-                          } catch (error) {
-                            console.error('Не удалось обновить профиль:', error);
-                          } finally {
-                            setSubmitting(false);
-                          }
-                        }}
+                        onSubmit={handleUpdateProfile}
                     >
                       {({
                           values,
@@ -176,23 +202,23 @@ export const ProfilePage: React.FC = () => {
                         }) => (
                           <Form onSubmit={handleSubmit}>
                             <Form.Group className="mb-3">
-                              <Form.Label>Имя</Form.Label>
+                              <Form.Label>Имя пользователя</Form.Label>
                               <Form.Control
                                   type="text"
-                                  name="name"
-                                  value={values.name}
+                                  name="userName"
+                                  value={values.userName}
                                   onChange={handleChange}
                                   onBlur={handleBlur}
-                                  isInvalid={touched.name && !!errors.name}
+                                  isInvalid={touched.userName && !!errors.userName}
                                   className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
                               />
                               <Form.Control.Feedback type="invalid">
-                                {errors.name}
+                                {errors.userName}
                               </Form.Control.Feedback>
                             </Form.Group>
 
                             <Form.Group className="mb-3">
-                              <Form.Label>Почта</Form.Label>
+                              <Form.Label>Email</Form.Label>
                               <Form.Control
                                   type="email"
                                   name="email"
@@ -229,9 +255,18 @@ export const ProfilePage: React.FC = () => {
                 ) : (
                     <div className="d-flex justify-content-between align-items-start">
                       <div>
-                        <h2 className="mb-1">{profile.name}</h2>
+                        <h2 className="mb-1">{profile.userName}</h2>
                         {isOwnProfile && (
-                            <p className={`mb-2 ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>{profile.email}</p>
+                            <>
+                              <p className={`mb-2 ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
+                                {profile.email}
+                              </p>
+                              {profile.role === 'Admin' && (
+                                  <Badge bg="warning" className="text-dark">
+                                    Администратор
+                                  </Badge>
+                              )}
+                            </>
                         )}
                       </div>
                       {isOwnProfile && (
@@ -260,18 +295,12 @@ export const ProfilePage: React.FC = () => {
                 <Tab.Container id="profile-tabs" defaultActiveKey="projects">
                   <Nav variant="tabs" className="mb-4">
                     <Nav.Item>
-                      <Nav.Link
-                          eventKey="projects"
-                          className={theme === 'dark' ? 'text-light' : ''}
-                      >
+                      <Nav.Link eventKey="projects" className={theme === 'dark' ? 'text-light' : ''}>
                         Мои проекты
                       </Nav.Link>
                     </Nav.Item>
                     <Nav.Item>
-                      <Nav.Link
-                          eventKey="donations"
-                          className={theme === 'dark' ? 'text-light' : ''}
-                      >
+                      <Nav.Link eventKey="donations" className={theme === 'dark' ? 'text-light' : ''}>
                         Мои пожертвования
                       </Nav.Link>
                     </Nav.Item>
@@ -282,24 +311,21 @@ export const ProfilePage: React.FC = () => {
                       <Row xs={1} md={2} lg={3} className="g-4">
                         {projects.map(project => (
                             <Col key={project.id}>
-                              <ProjectCard {...project} />
+                              <ProjectCard
+                                  id={project.id}
+                                  title={project.title}
+                                  description={project.description}
+                                  progress={project.progress}
+                                  category={project.category}
+                                  status={project.status}
+                                  image={project.image}
+                                  goalAmount={project.goalAmount}
+                                  collectedAmount={project.collectedAmount}
+                                  onEdit={profile.role === 'Admin' ? () => navigate(`/edit-project/${project.id}`) : undefined}
+                              />
                             </Col>
                         ))}
                       </Row>
-
-                      {projects.length === 0 && (
-                          <Card className={`text-center py-5 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
-                            <Card.Body>
-                              <p className={theme === 'dark' ? 'text-light-50 mb-3' : 'text-muted mb-3'}>Вы еще не создали ни одного проекта</p>
-                              <Button
-                                  variant="primary"
-                                  onClick={() => navigate('/create-project')}
-                              >
-                                Создайте свой первый проект
-                              </Button>
-                            </Card.Body>
-                          </Card>
-                      )}
                     </Tab.Pane>
 
                     <Tab.Pane eventKey="donations">
@@ -331,7 +357,9 @@ export const ProfilePage: React.FC = () => {
                       ) : (
                           <Card className={`text-center py-5 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
                             <Card.Body>
-                              <p className={theme === 'dark' ? 'text-light-50 mb-3' : 'text-muted mb-3'}>Вы еще не сделали ни одного пожертвования</p>
+                              <p className={theme === 'dark' ? 'text-light-50 mb-3' : 'text-muted mb-3'}>
+                                Вы еще не сделали ни одного пожертвования
+                              </p>
                               <Button
                                   variant="primary"
                                   onClick={() => navigate('/')}
@@ -346,23 +374,28 @@ export const ProfilePage: React.FC = () => {
                 </Tab.Container>
             ) : (
                 <>
-                  <h3 className={`mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Активные проекты</h3>
-
+                  <h3 className={`mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>
+                    {profile.role === 'Admin' ? 'Все проекты пользователя' : 'Активные проекты'}
+                  </h3>
                   <Row xs={1} md={2} lg={3} className="g-4">
-                    {projects.map(project => (
-                        <Col key={project.id}>
-                          <ProjectCard {...project} />
-                        </Col>
-                    ))}
+                    {projects
+                        .filter(project => profile.role === 'Admin' || project.status === 'Active')
+                        .map(project => (
+                            <Col key={project.id}>
+                              <ProjectCard
+                                  id={project.id}
+                                  title={project.title}
+                                  description={project.description}
+                                  progress={project.progress}
+                                  category={project.category}
+                                  status={project.status}
+                                  image={project.image}
+                                  goalAmount={project.goalAmount}
+                                  collectedAmount={project.collectedAmount}
+                              />
+                            </Col>
+                        ))}
                   </Row>
-
-                  {projects.length === 0 && (
-                      <Card className={`text-center py-5 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
-                        <Card.Body>
-                          <p className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>Активные проекты не найдены</p>
-                        </Card.Body>
-                      </Card>
-                  )}
                 </>
             )}
           </Container>

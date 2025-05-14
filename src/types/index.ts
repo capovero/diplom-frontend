@@ -23,7 +23,7 @@ export interface ProjectResponse {
   goalAmount: number;
   collectedAmount: number;
   createdAt: string;          // ISO-строка
-  categoryId: number;
+  categoryName?: string;
   status: string;             // "Pending" | "Active" | "Completed" и т. д.
   mediaFiles: string[];       // пути к файлам или URL
   averageRating: number | null;
@@ -38,10 +38,17 @@ export interface ProjectPaginationResponse {
 
 // ======= Donation =======
 export interface DonationResponse {
+  id: number;
   amount: number;
-  donateAt: string;           // ISO-строка
+  donateAt: string; // ISO-строка
+  projectId: number;
+  projectTitle: string;
+  userId: string;
+}
+
+export interface AdminDonationResponse extends DonationResponse {
   userName: string;
-  projectName: string;
+  userEmail: string;
 }
 
 export interface DonationUser {

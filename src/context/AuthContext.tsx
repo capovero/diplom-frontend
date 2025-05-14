@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { usersApi } from '../services/api';
 import type { UserProfileResponse } from '../types';
+import {AxiosError} from "axios";
 
 interface AuthContextType {
   user: UserProfileResponse | null;
@@ -32,15 +33,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (userName: string, password: string) => {
     try {
+      // 1. Выполняем вход
       await usersApi.login({ userName, password });
 
-      // Добавить задержку для применения куки
+      // 2. Даем время для установки куки
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      // 3. Загружаем профиль
       const resp = await usersApi.getProfile();
       setUser(resp.data);
+
     } catch (error) {
-      // Обработка ошибок
+      const axiosError = error as AxiosError<{ message?: string }>;
+      throw new Error(
+          axiosError.response?.data?.message ||
+          'Не удалось выполнить вход. Проверьте данные и повторите попытку'
+      );
     }
   };
 

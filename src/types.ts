@@ -1,0 +1,1 @@
+export type Status = 'Pending' | 'Active' | 'Completed' | 'Rejected';
