@@ -119,11 +119,7 @@ export const UserDetailsPage: React.FC = () => {
                 
                 <dt>Почта</dt>
                 <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>{user.email}</dd>
-                
-                <dt>Joined</dt> //убрать
-                <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </dd>
+
               </dl>
             </Card.Body>
           </Card>

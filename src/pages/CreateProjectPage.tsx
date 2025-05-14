@@ -90,8 +90,8 @@ export const CreateProjectPage: React.FC = () => {
                 
                 // Simulate API call
                 await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                navigate('/profile');
+
+                navigate(`/profile/${user.id}`); //тут видимо перессылка идет на страницу
               } catch (error) {
                 setStatus('Failed to create project. Please try again.');
               } finally {
@@ -250,22 +250,7 @@ export const CreateProjectPage: React.FC = () => {
                         </Row>
                       </div>
                     )}
-                    
-                    <Form.Group className="mb-3">
-                      <Form.Label>Ссылка на видео(опционально)</Form.Label>  //снести видева
-                      <Form.Control
-                        type="url"
-                        name="videoUrl"
-                        value={values.videoUrl}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        placeholder="e.g., YouTube or Vimeo URL"
-                        className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
-                      />
-                      <Form.Text className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                        Добавьте ссылку на видео, чтобы лучше продемонстрировать свой проект.
-                      </Form.Text>
-                    </Form.Group>
+
                   </Card.Body>
                 </Card>
                 
@@ -274,7 +259,7 @@ export const CreateProjectPage: React.FC = () => {
                     variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
                     onClick={() => navigate('/')}
                   >
-                    Cancel
+                    Отмена
                   </Button>
                   <Button
                     type="submit"

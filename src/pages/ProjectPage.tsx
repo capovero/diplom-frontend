@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Badge, ProgressBar, Button, Card, Carousel, Modal, Tab, Nav, Table } from 'react-bootstrap';
+import {
+  Container,
+  Row,
+  Col,
+  Badge,
+  ProgressBar,
+  Button,
+  Card,
+  Carousel,
+  Modal,
+  Tab,
+  Nav,
+  Table,
+  Form
+} from 'react-bootstrap';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSpring, animated } from 'react-spring';
 import { Star, ChevronLeft, ChevronRight, Share2, Trash2, Edit } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
+
 import { DonationModal } from '../components/DonationModal';
 import { SocialShareButtons } from '../components/SocialShareButtons';
 import { Footer } from '../components/Footer';
@@ -505,14 +520,11 @@ export const ProjectPage: React.FC = () => {
                                   ))}
                                 </div>
                                 <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                                  by <Link to={`/profile/${review.userId}`} className={theme === 'dark' ? 'text-light' : 'text-primary'}>
+                                  от <Link to={`/profile/${review.userId}`} className={theme === 'dark' ? 'text-light' : 'text-primary'}>
                                     {review.userName}
                                   </Link>
                                 </small>
                               </div>
-                              <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                                {new Date(review.createdAt).toLocaleDateString()}
-                              </small>
                             </div>
                             {(canManageReviews || review.userId === user?.id) && (
                               <div>
@@ -579,7 +591,7 @@ export const ProjectPage: React.FC = () => {
                           <div className="d-flex justify-content-between mb-2">
                             <div>
                               <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                                {new Date(update.createdAt).toLocaleDateString()} by{' '}
+                                {new Date(update.createdAt).toLocaleDateString()} от{' '}
                                 <Link to={`/profile/${update.createdBy.id}`} className={theme === 'dark' ? 'text-light' : 'text-primary'}>
                                   {update.createdBy.name}
                                 </Link>
@@ -748,7 +760,7 @@ export const ProjectPage: React.FC = () => {
         centered
       >
         <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-          <Modal.Title>{editingReview ? 'Edit Review' : 'Write a Review'}</Modal.Title>
+          <Modal.Title>{editingReview ? 'Изменить отзыа' : 'Напишите отзыв'}</Modal.Title>
         </Modal.Header>
         <Formik
           initialValues={{
@@ -771,7 +783,7 @@ export const ProjectPage: React.FC = () => {
             <Form onSubmit={handleSubmit}>
               <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Rating</Form.Label>
+                  <Form.Label>Рейтинг</Form.Label>
                   <div className="d-flex gap-2">
                     {Array.from({ length: 5 }).map((_, index) => (
                       <Button
@@ -795,7 +807,7 @@ export const ProjectPage: React.FC = () => {
                 </Form.Group>
 
                 <Form.Group>
-                  <Form.Label>Review</Form.Label>
+                  <Form.Label>Оценка</Form.Label>
                   <Form.Control
                     as="textarea"
                     rows={4}
@@ -819,10 +831,10 @@ export const ProjectPage: React.FC = () => {
                     setEditingReview(null);
                   }}
                 >
-                  Cancel
+                  Отмена
                 </Button>
                 <Button type="submit" variant="primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Saving...' : editingReview ? 'Save Changes' : 'Submit Review'}
+                  {isSubmitting ? 'Сохранение...' : editingReview ? 'Сохранить изменения' : 'Отправить отзыв'}
                 </Button>
               </Modal.Footer>
             </Form>

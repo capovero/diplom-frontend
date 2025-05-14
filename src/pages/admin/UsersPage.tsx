@@ -92,7 +92,6 @@ export const UsersPage: React.FC = () => {
               <th>Имя</th>
               <th>Почта</th>
               <th>Проекты</th>
-              <th>Joined</th>
               <th>Действия</th>
             </tr>
           </thead>
@@ -110,7 +109,6 @@ export const UsersPage: React.FC = () => {
                 </td>
                 <td>{user.email}</td>
                 <td>{user.projectsCount}</td>
-                <td>{new Date(user.createdAt).toLocaleDateString()}</td>
                 <td>
                   <Button
                     variant="danger"

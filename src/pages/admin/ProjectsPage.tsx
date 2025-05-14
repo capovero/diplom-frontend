@@ -155,7 +155,7 @@ export const ProjectsPage: React.FC = () => {
                   ID: {project.id}
                 </Card.Text>
                 <Card.Text className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                  Creator: {project.creator.name}
+                  Создатель: {project.creator.name}
                 </Card.Text>
                 <div className="d-flex gap-2 mt-3">
                   <Button
