@@ -1,82 +1,74 @@
-// User types
-export interface User {
+// src/types/index.ts
+
+// ======= User =======
+export interface UserResponse {
   id: string;
-  name: string;
+  userName: string;
   email: string;
-  role: 'USER' | 'ADMIN';
-  createdAt: string;
 }
 
-// Project types
-export interface Project {
-  id: string;
+export interface UserProfileResponse extends UserResponse {
+  projects: ProjectResponse[];
+}
+
+export interface AdminProfileResponse extends UserProfileResponse {
+  role: string;
+}
+
+// ======= Project =======
+export interface ProjectResponse {
+  id: number;
   title: string;
   description: string;
-  images: string[];
   goalAmount: number;
   collectedAmount: number;
-  status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'REJECTED';
-  category: string;
-  categoryId: string;
-  averageRating: number;
-  creator: {
-    id: string;
-    name: string;
-  };
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string;          // ISO-строка
+  categoryId: number;
+  status: string;             // "Pending" | "Active" | "Completed" и т. д.
+  mediaFiles: string[];       // пути к файлам или URL
+  averageRating: number | null;
 }
 
-// Donation types
-export interface Donation {
-  id: string;
+export interface ProjectPaginationResponse {
+  currentPage: number;
+  pageSize: number;
+  totalRecords: number;
+  data: ProjectResponse[];
+}
+
+// ======= Donation =======
+export interface DonationResponse {
   amount: number;
-  projectId: string;
-  projectTitle: string;
-  userId: string;
+  donateAt: string;           // ISO-строка
   userName: string;
-  createdAt: string;
+  projectName: string;
 }
 
-// Category types
-export interface Category {
-  id: string;
+export interface DonationUser {
+  amount: number;
+  donateAt: string;           // ISO-строка
+  projectTitle: string;
+}
+
+// ======= Review =======
+export interface ReviewResponse {
+  id: number;
+  projectId: number;
+  rating: number;
+  comment: string;
+  userName: string;
+  projectName: string;
+}
+
+// ======= Category =======
+export interface CategoryDto {
+  id: number;
   name: string;
 }
 
-// Review types
-export interface Review {
-  id: string;
-  text: string;
-  rating: number;
-  userId: string;
-  userName: string;
-  projectId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Update types
-export interface ProjectUpdate {
-  id: string;
-  title: string;
+// ======= Update =======
+export interface UpdateResponse {
+  id: number;
   content: string;
-  projectId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// API Response types
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  totalPages: number;
-  hasMore: boolean;
-}
-
-export interface ApiError {
-  message: string;
-  code: string;
-  details?: Record<string, string[]>;
+  createdAt: string;          // ISO-строка
 }
