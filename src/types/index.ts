@@ -27,6 +27,7 @@ export interface ProjectResponse {
   status: string;             // "Pending" | "Active" | "Completed" и т. д.
   mediaFiles: string[];       // пути к файлам или URL
   averageRating: number | null;
+  creator: UserResponse;
 }
 
 export interface ProjectPaginationResponse {
