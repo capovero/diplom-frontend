@@ -1,3 +1,5 @@
+// src/pages/ProjectPage.tsx
+
 import React, { useState, useEffect } from 'react';
 import {
   Container,
@@ -18,15 +20,22 @@ import {
 } from 'react-bootstrap';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSpring, animated } from 'react-spring';
-import { Star, ChevronLeft, ChevronRight, Share2, Trash2, Edit } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { Formik } from 'formik';
+import { Star, ChevronLeft, Trash2, Edit } from 'lucide-react';
+import { Formik, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
-import { projectsApi, reviewsApi, donationsApi, updatesApi } from '../services/api.ts';
+import {
+  projectsApi,
+  reviewsApi,
+  donationsApi,
+  updatesApi
+} from '../services/api';
 import { DonationModal } from '../components/DonationModal';
 import { SocialShareButtons } from '../components/SocialShareButtons';
 import { Footer } from '../components/Footer';
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+
+// ===== 1) Интерфейсы DTO, которые возвращаются с бэкенда =====
 
 interface Project {
   id: number;
@@ -49,29 +58,22 @@ interface ProjectUpdate {
   id: number;
   content: string;
   createdAt: string;
-  createdBy: {
-    id: string;
-    name: string;
-    role: 'USER' | 'ADMIN';
-  };
 }
 
 interface Review {
   id: number;
   rating: number;
   comment: string;
-  userId: string;
   userName: string;
-  createdAt: string;
 }
 
-interface Donation {
-  id: number;
-  amount: number;
-  userId: string;
+interface DonationRecord {
   userName: string;
-  createdAt: string;
+  amount: number;
+  donateAt: string;
 }
+
+// ===== 2) Схемы валидации =====
 
 const updateSchema = Yup.object().shape({
   content: Yup.string()
@@ -82,7 +84,7 @@ const updateSchema = Yup.object().shape({
 const reviewSchema = Yup.object().shape({
   rating: Yup.number()
       .min(1, 'Рейтинг должен быть не менее 1')
-      .max(5, 'Оценка не может быть больше 5')
+      .max(5, 'Рейтинг не может быть больше 5')
       .required('Требуется рейтинг'),
   comment: Yup.string()
       .min(10, 'Отзыв должен содержать не менее 10 символов')
@@ -94,111 +96,193 @@ export const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { theme } = useTheme();
+
   const [project, setProject] = useState<Project | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showDonateModal, setShowDonateModal] = useState(false);
+
   const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [editingUpdate, setEditingUpdate] = useState<ProjectUpdate | null>(null);
-  const [donations, setDonations] = useState<Donation[]>([]);
+  const [editingUpdate, setEditingUpdate] = useState<ProjectUpdate | null>(
+      null
+  );
+
   const [reviews, setReviews] = useState<Review[]>([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
+
+  const [donations, setDonations] = useState<DonationRecord[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fadeIn = useSpring({
     from: { opacity: 0 },
     to: { opacity: 1 },
-    config: { duration: 300 }
+    config: { duration: 300 },
   });
 
-  // Загрузка данных проекта
+  const isProjectCreator = project?.creator.id === user?.id;
+  const canManageUpdates = user?.role === 'ADMIN' || isProjectCreator;
+  const canManageReviews = user?.role === 'ADMIN';
+  const hasUserReviewed = reviews.some((r) => r.userName === user?.name);
+
   useEffect(() => {
     const loadProjectData = async () => {
+      if (!id) return;
+      setLoading(true);
+      setError(null);
+
+      // 1. Загрузка информации о проекте
       try {
-        setLoading(true);
-        setError(null);
-
-        // Загрузка основной информации о проекте
         const projectResponse = await projectsApi.getById(Number(id));
-        const projectData = projectResponse.data;
+        const p = projectResponse.data;
+        setProject({
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          mediaFiles: p.mediaFiles,
+          goalAmount: p.goalAmount,
+          collectedAmount: p.collectedAmount,
+          creator: { id: p.creator.id, name: p.creator.name },
+          categoryName: p.categoryName || 'Без категории',
+          status: p.status,
+          createdAt: p.createdAt,
+          averageRating: p.averageRating ?? 0,
+        });
+      } catch (err) {
+        console.error('Проект не найден или ошибка сети:', err);
+        setError('Проект не найден или ошибка сети');
+        setLoading(false);
+        return;
+      }
 
-        // Преобразование данных проекта
-        const transformedProject: Project = {
-          id: projectData.id,
-          title: projectData.title,
-          description: projectData.description,
-          mediaFiles: projectData.mediaFiles,
-          goalAmount: projectData.goalAmount,
-          collectedAmount: projectData.collectedAmount,
-          creator: {
-            id: projectData.creator.id,
-            name: projectData.creator.name
-          },
-          categoryName: projectData.categoryName || 'Без категории',
-          status: projectData.status,
-          createdAt: projectData.createdAt,
-          averageRating: projectData.averageRating || 0
-        };
-
-        setProject(transformedProject);
-
-        // Загрузка отзывов
+      // 2. Загрузка отзывов
+      try {
         const reviewsResponse = await reviewsApi.getByProject(Number(id));
-        setReviews(reviewsResponse.data);
+        setReviews(
+            reviewsResponse.data.map((r) => ({
+              id: r.id,
+              rating: r.rating,
+              comment: r.comment,
+              userName: r.userName,
+            }))
+        );
+      } catch (err) {
+        // Если 404 → просто пустой список
+        if ((err as any).response?.status === 404) {
+          setReviews([]);
+        } else {
+          console.error('Ошибка загрузки отзывов:', err);
+          setError('Не удалось загрузить отзывы');
+        }
+      }
 
-        // Загрузка обновлений
+      // 3. Загрузка обновлений
+      try {
         const updatesResponse = await updatesApi.getByProject(Number(id));
-        setUpdates(updatesResponse.data);
+        setUpdates(
+            updatesResponse.data.map((u) => ({
+              id: u.id,
+              content: u.content,
+              createdAt: u.createdAt,
+            }))
+        );
+      } catch (err) {
+        if ((err as any).response?.status === 404) {
+          setUpdates([]);
+        } else {
+          console.error('Ошибка загрузки обновлений:', err);
+          setError('Не удалось загрузить обновления');
+        }
+      }
 
-        // Загрузка пожертвований (если пользователь админ или создатель)
-        if (user?.role === 'ADMIN' || user?.id === projectData.creator.id) {
+      // 4. Загрузка пожертвований:
+      try {
+        if (user?.role === 'ADMIN') {
           const donationsResponse = await donationsApi.adminGetForProject(Number(id));
-          setDonations(donationsResponse.data);
+          setDonations(
+              donationsResponse.data.map((d) => ({
+                userName: d.userName,
+                amount: d.amount,
+                donateAt: d.donateAt,
+              }))
+          );
+        } else if (isProjectCreator) {
+          const donationsResponse = await donationsApi.getForCreatorProject(Number(id));
+          setDonations(
+              donationsResponse.data.map((d) => ({
+                userName: d.userName,
+                amount: d.amount,
+                donateAt: d.donateAt,
+              }))
+          );
         }
       } catch (err) {
-        console.error('Ошибка загрузки данных проекта:', err);
-        setError('Не удалось загрузить данные проекта');
-      } finally {
-        setLoading(false);
+        if ((err as any).response?.status === 404) {
+          setDonations([]);
+        } else if ((err as any).response?.status === 403) {
+          // Forbidden для владельца (без AdminPolicy) может прийти, игнорируем и показывает пустой список
+          setDonations([]);
+        } else {
+          console.error('Ошибка загрузки пожертвований:', err);
+          setError('Не удалось загрузить пожертвования');
+        }
       }
+
+      setLoading(false);
     };
 
-    if (id) {
-      loadProjectData();
-    }
-  }, [id, user]);
+    loadProjectData();
+  }, [id, user, isProjectCreator]);
 
+  // ===== Пожертвовать =====
   const handleDonate = async (amount: number) => {
+    if (!id) return;
     try {
       if (!user) {
         navigate('/login');
         return;
       }
-
       await donationsApi.create(Number(id), amount);
 
-      // Обновляем сумму собранных средств
-      setProject(prev => prev ? {
-        ...prev,
-        collectedAmount: prev.collectedAmount + amount
-      } : null);
+      setProject((prev) =>
+          prev ? { ...prev, collectedAmount: prev.collectedAmount + amount } : null
+      );
 
-      // Обновляем список пожертвований
-      if (user.role === 'ADMIN' || user.id === project?.creator.id) {
-        const donationsResponse = await donationsApi.adminGetForProject(Number(id));
-        setDonations(donationsResponse.data);
+      if (user.role === 'ADMIN') {
+        const resp = await donationsApi.adminGetForProject(Number(id));
+        setDonations(
+            resp.data.map((d) => ({
+              userName: d.userName,
+              amount: d.amount,
+              donateAt: d.donateAt,
+            }))
+        );
+      } else if (isProjectCreator) {
+        const resp = await donationsApi.getForCreatorProject(Number(id));
+        setDonations(
+            resp.data.map((d) => ({
+              userName: d.userName,
+              amount: d.amount,
+              donateAt: d.donateAt,
+            }))
+        );
       }
 
       setShowDonateModal(false);
-    } catch (error) {
-      console.error('Пожертвование не удалось:', error);
-      setError('Не удалось обработать пожертвование');
+    } catch (err) {
+      console.error('Ошибка при пожертвовании:', err);
+      setError('Не удалось выполнить пожертвование');
     }
   };
 
-  const handleUpdateSubmit = async (values: { content: string }, { resetForm }: any) => {
+  // ===== Создание/Редактирование обновления =====
+  const handleUpdateSubmit = async (
+      values: { content: string },
+      helpers: FormikHelpers<{ content: string }>
+  ) => {
+    if (!id) return;
     try {
       if (!user) {
         navigate('/login');
@@ -206,46 +290,43 @@ export const ProjectPage: React.FC = () => {
       }
 
       if (editingUpdate) {
-        // Редактирование существующего обновления
         await updatesApi.update(editingUpdate.id, {
           content: values.content,
-          projectId: Number(id)
+          projectId: Number(id),
         });
-
-        setUpdates(prev => prev.map(update =>
-            update.id === editingUpdate.id ? { ...update, content: values.content } : update
-        ));
+        setUpdates((prev) =>
+            prev.map((u) =>
+                u.id === editingUpdate.id ? { ...u, content: values.content } : u
+            )
+        );
       } else {
-        // Создание нового обновления
         const response = await updatesApi.create({
           content: values.content,
-          projectId: Number(id)
+          projectId: Number(id),
         });
-
         const newUpdate: ProjectUpdate = {
           id: response.data.id,
           content: values.content,
           createdAt: new Date().toISOString(),
-          createdBy: {
-            id: user.id,
-            name: user.name || 'Пользователь',
-            role: user.role as 'USER' | 'ADMIN'
-          }
         };
-
-        setUpdates(prev => [newUpdate, ...prev]);
+        setUpdates((prev) => [newUpdate, ...prev]);
       }
 
       setShowUpdateModal(false);
       setEditingUpdate(null);
-      resetForm();
-    } catch (error) {
-      console.error('Не удалось отправить обновление:', error);
+      helpers.resetForm();
+    } catch (err) {
+      console.error('Ошибка при сохранении обновления:', err);
       setError('Не удалось сохранить обновление');
     }
   };
 
-  const handleReviewSubmit = async (values: { rating: number; comment: string }, { resetForm }: any) => {
+  // ===== Создание/Редактирование отзыва =====
+  const handleReviewSubmit = async (
+      values: { rating: number; comment: string },
+      helpers: FormikHelpers<{ rating: number; comment: string }>
+  ) => {
+    if (!id) return;
     try {
       if (!user) {
         navigate('/login');
@@ -253,118 +334,100 @@ export const ProjectPage: React.FC = () => {
       }
 
       if (editingReview) {
-        // Редактирование существующего отзыва
         await reviewsApi.update(editingReview.id, {
           rating: values.rating,
-          comment: values.comment
+          comment: values.comment,
         });
-
-        setReviews(prev => prev.map(review =>
-            review.id === editingReview.id ? {
-              ...review,
-              rating: values.rating,
-              comment: values.comment
-            } : review
-        ));
+        setReviews((prev) =>
+            prev.map((r) =>
+                r.id === editingReview.id
+                    ? { ...r, rating: values.rating, comment: values.comment }
+                    : r
+            )
+        );
       } else {
-        // Создание нового отзыва
         const response = await reviewsApi.create({
           projectId: Number(id),
           rating: values.rating,
-          comment: values.comment
+          comment: values.comment,
         });
-
         const newReview: Review = {
           id: response.data.id,
           rating: values.rating,
           comment: values.comment,
-          userId: user.id,
           userName: user.name || 'Пользователь',
-          createdAt: new Date().toISOString()
         };
-
-        setReviews(prev => [newReview, ...prev]);
+        setReviews((prev) => [newReview, ...prev]);
       }
 
-      // Пересчитываем средний рейтинг
+      // Пересчёт рейтинга на клиенте
       if (project) {
-        const totalRating = reviews.reduce((sum, review) => {
-          if (review.id === editingReview?.id) {
-            return sum - editingReview.rating + values.rating;
-          }
-          return sum + review.rating;
-        }, 0);
-
-        const totalReviews = editingReview ? reviews.length : reviews.length + 1;
-        const newAverageRating = totalRating / totalReviews;
-
-        setProject(prev => prev ? {
-          ...prev,
-          averageRating: newAverageRating
-        } : null);
+        const sumRatings =
+            reviews.reduce((sum, r) => sum + r.rating, 0) +
+            (editingReview ? 0 : values.rating) -
+            (editingReview ? editingReview.rating : 0);
+        const count = editingReview ? reviews.length : reviews.length + 1;
+        const newAvg = count > 0 ? sumRatings / count : 0;
+        setProject((prev) =>
+            prev ? { ...prev, averageRating: newAvg } : null
+        );
       }
 
       setShowReviewModal(false);
       setEditingReview(null);
-      resetForm();
-    } catch (error) {
-      console.error('Не удалось отправить отзыв:', error);
+      helpers.resetForm();
+    } catch (err) {
+      console.error('Ошибка при сохранении отзыва:', err);
       setError('Не удалось сохранить отзыв');
     }
   };
 
+  // ===== Удаление обновления =====
   const handleDeleteUpdate = async (updateId: number) => {
+    if (!id) return;
     try {
       if (!user) {
         navigate('/login');
         return;
       }
-
-      if (window.confirm('Вы уверены, что хотите удалить это обновление?')) {
+      if (window.confirm('Уверены, что хотите удалить это обновление?')) {
         await updatesApi.delete(updateId);
-        setUpdates(prev => prev.filter(update => update.id !== updateId));
+        setUpdates((prev) => prev.filter((u) => u.id !== updateId));
       }
-    } catch (error) {
-      console.error('Не удалось удалить обновление:', error);
+    } catch (err) {
+      console.error('Ошибка при удалении обновления:', err);
       setError('Не удалось удалить обновление');
     }
   };
 
+  // ===== Удаление отзыва =====
   const handleDeleteReview = async (reviewId: number) => {
+    if (!id) return;
     try {
       if (!user) {
         navigate('/login');
         return;
       }
-
-      if (window.confirm('Вы уверены, что хотите удалить этот отзыв?')) {
+      if (window.confirm('Уверены, что хотите удалить этот отзыв?')) {
         await reviewsApi.delete(reviewId);
 
-        const reviewToDelete = reviews.find(r => r.id === reviewId);
-        if (reviewToDelete && project) {
-          const newTotalReviews = reviews.length - 1;
-          const newAverageRating = newTotalReviews > 0
-              ? (project.averageRating * reviews.length - reviewToDelete.rating) / newTotalReviews
-              : 0;
-
-          setProject(prev => prev ? {
-            ...prev,
-            averageRating: newAverageRating
-          } : null);
+        const rToDelete = reviews.find((r) => r.id === reviewId);
+        if (rToDelete && project) {
+          const newCount = reviews.length - 1;
+          const sumWithout =
+              reviews.reduce((sum, r) => sum + r.rating, 0) - rToDelete.rating;
+          const newAvg = newCount > 0 ? sumWithout / newCount : 0;
+          setProject((prev) =>
+              prev ? { ...prev, averageRating: newAvg } : null
+          );
         }
-
-        setReviews(prev => prev.filter(review => review.id !== reviewId));
+        setReviews((prev) => prev.filter((r) => r.id !== reviewId));
       }
-    } catch (error) {
-      console.error('Не удалось удалить отзыв:', error);
+    } catch (err) {
+      console.error('Ошибка при удалении отзыва:', err);
       setError('Не удалось удалить отзыв');
     }
   };
-
-  const canManageUpdates = user?.role === 'ADMIN' || project?.creator.id === user?.id;
-  const canManageReviews = user?.role === 'ADMIN';
-  const hasUserReviewed = reviews.some(review => review.userId === user?.id);
-  const isProjectCreator = project?.creator.id === user?.id;
 
   if (loading) {
     return (
@@ -398,8 +461,13 @@ export const ProjectPage: React.FC = () => {
       <div className="d-flex flex-column min-vh-100">
         <animated.div style={fadeIn} className="flex-grow-1">
           <Container className="py-4">
-            {error && <Alert variant="danger" className="mb-4">{error}</Alert>}
+            {error && (
+                <Alert variant="danger" className="mb-4">
+                  {error}
+                </Alert>
+            )}
 
+            {/* Назад + основная информация */}
             <div className="mb-4">
               <Button
                   variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
@@ -409,26 +477,41 @@ export const ProjectPage: React.FC = () => {
                 <ChevronLeft size={20} className="me-1" />
                 Назад к проектам
               </Button>
-              <h1 className={theme === 'dark' ? 'text-light' : ''}>{project.title}</h1>
+              <h1 className={theme === 'dark' ? 'text-light' : ''}>
+                {project.title}
+              </h1>
               <div className="d-flex align-items-center gap-2 mb-3">
                 <Badge bg="primary">{project.categoryName}</Badge>
                 <Badge bg="success">{project.status}</Badge>
                 <div className="ms-2 d-flex align-items-center">
                   <Star className="text-warning" size={18} />
-                  <span className="ms-1">{project.averageRating.toFixed(1)}</span>
-                  <span className="ms-1 text-muted">({totalReviews} reviews)</span>
+                  <span className="ms-1">
+                  {project.averageRating.toFixed(1)}
+                </span>
+                  <span className="ms-1 text-muted">({totalReviews} отзывов)</span>
                 </div>
                 <div className="ms-2">
-                  by <Link to={`/profile/${project.creator.id}`} className={`text-decoration-none ${theme === 'dark' ? 'text-light' : 'text-primary'}`}>
-                  {project.creator.name}
-                </Link>
+                  by{' '}
+                  <Link
+                      to={`/profile/${project.creator.id}`}
+                      className={`text-decoration-none ${
+                          theme === 'dark' ? 'text-light' : 'text-primary'
+                      }`}
+                  >
+                    {project.creator.name}
+                  </Link>
                 </div>
               </div>
             </div>
 
             <Row className="g-4">
+              {/* ===== Слева: Карусель и описание ===== */}
               <Col lg={8}>
-                <Card className={`project-carousel mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
+                <Card
+                    className={`project-carousel mb-4 ${
+                        theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
+                    }`}
+                >
                   <Card.Body className="p-0">
                     <Carousel
                         activeIndex={currentImageIndex}
@@ -436,34 +519,39 @@ export const ProjectPage: React.FC = () => {
                         interval={null}
                         indicators={false}
                     >
-                      {project.mediaFiles.map((image, index) => (
-                          <Carousel.Item key={index}>
+                      {project.mediaFiles.map((image, idx) => (
+                          <Carousel.Item key={idx}>
                             <div className="project-image-container">
                               <img
                                   src={image}
-                                  alt={`Project ${index + 1}`}
+                                  alt={`Project ${idx + 1}`}
                                   className="project-image"
                               />
                             </div>
                           </Carousel.Item>
                       ))}
                     </Carousel>
-
                     <div className="image-thumbnails px-3 pb-3">
-                      {project.mediaFiles.map((image, index) => (
+                      {project.mediaFiles.map((image, idx) => (
                           <img
-                              key={index}
+                              key={idx}
                               src={image}
-                              alt={`Thumbnail ${index + 1}`}
-                              className={`thumbnail-image ${index === currentImageIndex ? 'active' : ''}`}
-                              onClick={() => setCurrentImageIndex(index)}
+                              alt={`Thumbnail ${idx + 1}`}
+                              className={`thumbnail-image ${
+                                  idx === currentImageIndex ? 'active' : ''
+                              }`}
+                              onClick={() => setCurrentImageIndex(idx)}
                           />
                       ))}
                     </div>
                   </Card.Body>
                 </Card>
 
-                <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
+                <Card
+                    className={`mb-4 ${
+                        theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
+                    }`}
+                >
                   <Card.Body>
                     <h4 className="mb-3">О проекте</h4>
                     <p>{project.description}</p>
@@ -471,12 +559,23 @@ export const ProjectPage: React.FC = () => {
                 </Card>
               </Col>
 
+              {/* ===== Справа: Инфо о сборе и Donate ===== */}
               <Col lg={4}>
-                <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
+                <Card
+                    className={`mb-4 ${
+                        theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
+                    }`}
+                >
                   <Card.Body>
-                    <h4 className="mb-3">${project.collectedAmount.toLocaleString()}</h4>
-                    <p className={`mb-1 ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
-                      собрано из ${project.goalAmount.toLocaleString()}
+                    <h4 className="mb-3">
+                      $ {project.collectedAmount.toLocaleString()}
+                    </h4>
+                    <p
+                        className={`mb-1 ${
+                            theme === 'dark' ? 'text-light-50' : 'text-muted'
+                        }`}
+                    >
+                      собрано из $ {project.goalAmount.toLocaleString()}
                     </p>
                     <ProgressBar now={progress} className="mb-4" />
 
@@ -498,21 +597,31 @@ export const ProjectPage: React.FC = () => {
               </Col>
             </Row>
 
+            {/* ===== Вкладки: Отзывы / Обновления / Пожертвования ===== */}
             <Tab.Container defaultActiveKey="reviews">
               <Nav variant="tabs" className="mb-4">
                 <Nav.Item>
-                  <Nav.Link eventKey="reviews" className={theme === 'dark' ? 'text-light' : ''}>
+                  <Nav.Link
+                      eventKey="reviews"
+                      className={theme === 'dark' ? 'text-light' : ''}
+                  >
                     Отзывы
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link eventKey="updates" className={theme === 'dark' ? 'text-light' : ''}>
+                  <Nav.Link
+                      eventKey="updates"
+                      className={theme === 'dark' ? 'text-light' : ''}
+                  >
                     Обновления
                   </Nav.Link>
                 </Nav.Item>
                 {(user?.role === 'ADMIN' || isProjectCreator) && (
                     <Nav.Item>
-                      <Nav.Link eventKey="donations" className={theme === 'dark' ? 'text-light' : ''}>
+                      <Nav.Link
+                          eventKey="donations"
+                          className={theme === 'dark' ? 'text-light' : ''}
+                      >
                         Пожертвования
                       </Nav.Link>
                     </Nav.Item>
@@ -520,24 +629,39 @@ export const ProjectPage: React.FC = () => {
               </Nav>
 
               <Tab.Content>
+                {/* ===== Вкладка «Отзывы» ===== */}
                 <Tab.Pane eventKey="reviews">
-                  <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+                  <Card
+                      className={
+                        theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
+                      }
+                  >
                     <Card.Body>
                       <div className="d-flex justify-content-between align-items-center mb-4">
                         <div>
                           <h5 className="mb-2">Отзывы проекта</h5>
                           <div className="d-flex align-items-center">
                             <div className="me-2">
-                              {Array.from({ length: 5 }).map((_, index) => (
+                              {Array.from({ length: 5 }).map((_, idx) => (
                                   <Star
-                                      key={index}
+                                      key={idx}
                                       size={20}
-                                      className={index < Math.round(project.averageRating) ? 'text-warning' : 'text-muted'}
-                                      fill={index < Math.round(project.averageRating) ? 'currentColor' : 'none'}
+                                      className={
+                                        idx < Math.round(project.averageRating)
+                                            ? 'text-warning'
+                                            : 'text-muted'
+                                      }
+                                      fill={
+                                        idx < Math.round(project.averageRating)
+                                            ? 'currentColor'
+                                            : 'none'
+                                      }
                                   />
                               ))}
                             </div>
-                            <span className="fs-5 fw-bold me-2">{project.averageRating.toFixed(1)}</span>
+                            <span className="fs-5 fw-bold me-2">
+                            {project.averageRating.toFixed(1)}
+                          </span>
                             <span className="text-muted">({totalReviews} отзывов)</span>
                           </div>
                         </div>
@@ -554,40 +678,50 @@ export const ProjectPage: React.FC = () => {
                         )}
                       </div>
 
-                      {reviews.map(review => (
+                      {reviews.map((r) => (
                           <Card
-                              key={review.id}
-                              className={`mb-3 ${theme === 'dark' ? 'bg-secondary-dark border-secondary' : 'bg-light'}`}
+                              key={r.id}
+                              className={`mb-3 ${
+                                  theme === 'dark'
+                                      ? 'bg-secondary-dark border-secondary'
+                                      : 'bg-light'
+                              }`}
                           >
                             <Card.Body>
                               <div className="d-flex justify-content-between mb-2">
                                 <div>
                                   <div className="d-flex align-items-center mb-1">
                                     <div className="me-2">
-                                      {Array.from({ length: 5 }).map((_, index) => (
+                                      {Array.from({ length: 5 }).map((_v, idx2) => (
                                           <Star
-                                              key={index}
+                                              key={idx2}
                                               size={16}
-                                              className={index < review.rating ? 'text-warning' : 'text-muted'}
-                                              fill={index < review.rating ? 'currentColor' : 'none'}
+                                              className={
+                                                idx2 < r.rating ? 'text-warning' : 'text-muted'
+                                              }
+                                              fill={
+                                                idx2 < r.rating ? 'currentColor' : 'none'
+                                              }
                                           />
                                       ))}
                                     </div>
-                                    <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                                      от <Link to={`/profile/${review.userId}`} className={theme === 'dark' ? 'text-light' : 'text-primary'}>
-                                      {review.userName}
-                                    </Link>
+                                    <small
+                                        className={theme === 'dark'
+                                            ? 'text-light-50'
+                                            : 'text-muted'}
+                                    >
+                                      от {r.userName}
                                     </small>
                                   </div>
                                 </div>
-                                {(canManageReviews || review.userId === user?.id) && (
+                                {(canManageReviews || r.userName === user?.name) && (
                                     <div>
-                                      {review.userId === user?.id && (
+                                      {r.userName === user?.name && (
                                           <Button
                                               variant="link"
                                               className="p-0 me-3"
                                               onClick={() => {
-                                                setEditingReview(review);
+                                                setEditingReview(r);
                                                 setShowReviewModal(true);
                                               }}
                                           >
@@ -597,20 +731,24 @@ export const ProjectPage: React.FC = () => {
                                       <Button
                                           variant="link"
                                           className="p-0 text-danger"
-                                          onClick={() => handleDeleteReview(review.id)}
+                                          onClick={() => handleDeleteReview(r.id)}
                                       >
                                         <Trash2 size={16} />
                                       </Button>
                                     </div>
                                 )}
                               </div>
-                              <p className="mb-0">{review.comment}</p>
+                              <p className="mb-0">{r.comment}</p>
                             </Card.Body>
                           </Card>
                       ))}
 
                       {reviews.length === 0 && (
-                          <p className={`text-center ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
+                          <p
+                              className={`text-center ${
+                                  theme === 'dark' ? 'text-light-50' : 'text-muted'
+                              }`}
+                          >
                             Отзывов пока нет
                           </p>
                       )}
@@ -618,8 +756,11 @@ export const ProjectPage: React.FC = () => {
                   </Card>
                 </Tab.Pane>
 
+                {/* ===== Вкладка «Обновления» ===== */}
                 <Tab.Pane eventKey="updates">
-                  <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+                  <Card
+                      className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+                  >
                     <Card.Body>
                       <div className="d-flex justify-content-between align-items-center mb-4">
                         <h5 className="mb-0">Обновления проекта</h5>
@@ -636,31 +777,31 @@ export const ProjectPage: React.FC = () => {
                         )}
                       </div>
 
-                      {updates.map(update => (
+                      {updates.map((u) => (
                           <Card
-                              key={update.id}
-                              className={`mb-3 ${theme === 'dark' ? 'bg-secondary-dark border-secondary' : 'bg-light'}`}
+                              key={u.id}
+                              className={`mb-3 ${
+                                  theme === 'dark'
+                                      ? 'bg-secondary-dark border-secondary'
+                                      : 'bg-light'
+                              }`}
                           >
                             <Card.Body>
                               <div className="d-flex justify-content-between mb-2">
                                 <div>
-                                  <small className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
-                                    {new Date(update.createdAt).toLocaleDateString()} от{' '}
-                                    <Link to={`/profile/${update.createdBy.id}`} className={theme === 'dark' ? 'text-light' : 'text-primary'}>
-                                      {update.createdBy.name}
-                                    </Link>
-                                    {update.createdBy.role === 'ADMIN' && (
-                                        <Badge bg="warning" className="ms-2">Admin</Badge>
-                                    )}
+                                  <small
+                                      className={theme === 'dark' ? 'text-light-50' : 'text-muted'}
+                                  >
+                                    {new Date(u.createdAt).toLocaleDateString()}
                                   </small>
                                 </div>
-                                {(user?.role === 'ADMIN' || (isProjectCreator && update.createdBy.id === user?.id)) && (
+                                {canManageUpdates && (
                                     <div>
                                       <Button
                                           variant="link"
                                           className="p-0 me-3"
                                           onClick={() => {
-                                            setEditingUpdate(update);
+                                            setEditingUpdate(u);
                                             setShowUpdateModal(true);
                                           }}
                                       >
@@ -669,20 +810,24 @@ export const ProjectPage: React.FC = () => {
                                       <Button
                                           variant="link"
                                           className="p-0 text-danger"
-                                          onClick={() => handleDeleteUpdate(update.id)}
+                                          onClick={() => handleDeleteUpdate(u.id)}
                                       >
                                         <Trash2 size={16} />
                                       </Button>
                                     </div>
                                 )}
                               </div>
-                              <p className="mb-0">{update.content}</p>
+                              <p className="mb-0">{u.content}</p>
                             </Card.Body>
                           </Card>
                       ))}
 
                       {updates.length === 0 && (
-                          <p className={`text-center ${theme === 'dark' ? 'text-light-50' : 'text-muted'}`}>
+                          <p
+                              className={`text-center ${
+                                  theme === 'dark' ? 'text-light-50' : 'text-muted'
+                              }`}
+                          >
                             Обновлений пока нет
                           </p>
                       )}
@@ -690,12 +835,18 @@ export const ProjectPage: React.FC = () => {
                   </Card>
                 </Tab.Pane>
 
+                {/* ===== Вкладка «Пожертвования» (для владельца/админа) ===== */}
                 {(user?.role === 'ADMIN' || isProjectCreator) && (
                     <Tab.Pane eventKey="donations">
-                      <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+                      <Card
+                          className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+                      >
                         <Card.Body>
                           <h5 className="mb-4">Пожертвования проекта</h5>
-                          <Table responsive className={theme === 'dark' ? 'table-dark' : ''}>
+                          <Table
+                              responsive
+                              className={theme === 'dark' ? 'table-dark' : ''}
+                          >
                             <thead>
                             <tr>
                               <th>Донатер</th>
@@ -704,20 +855,20 @@ export const ProjectPage: React.FC = () => {
                             </tr>
                             </thead>
                             <tbody>
-                            {donations.map(donation => (
-                                <tr key={donation.id}>
+                            {donations.map((d, idx) => (
+                                <tr key={idx}>
+                                  <td>{d.userName}</td>
+                                  <td>${d.amount}</td>
                                   <td>
-                                    <Link to={`/profile/${donation.userId}`} className={theme === 'dark' ? 'text-light' : 'text-primary'}>
-                                      {donation.userName}
-                                    </Link>
+                                    {new Date(d.donateAt).toLocaleDateString()}
                                   </td>
-                                  <td>${donation.amount}</td>
-                                  <td>{new Date(donation.createdAt).toLocaleDateString()}</td>
                                 </tr>
                             ))}
                             {donations.length === 0 && (
                                 <tr>
-                                  <td colSpan={3} className="text-center">Пожертвования не найдены</td>
+                                  <td colSpan={3} className="text-center">
+                                    Пожертвования не найдены
+                                  </td>
                                 </tr>
                             )}
                             </tbody>
@@ -733,13 +884,17 @@ export const ProjectPage: React.FC = () => {
 
         <Footer />
 
-        <DonationModal
-            show={showDonateModal}
-            onHide={() => setShowDonateModal(false)}
-            projectTitle={project.title}
-            onDonate={handleDonate}
-        />
+        {/* ===== DonationModal ===== */}
+        {project && (
+            <DonationModal
+                show={showDonateModal}
+                onHide={() => setShowDonateModal(false)}
+                projectTitle={project.title}
+                onDonate={handleDonate}
+            />
+        )}
 
+        {/* ===== Модалка «Добавить/Редактировать обновление» ===== */}
         <Modal
             show={showUpdateModal}
             onHide={() => {
@@ -748,9 +903,15 @@ export const ProjectPage: React.FC = () => {
             }}
             centered
         >
-          <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-            <Modal.Title>{editingUpdate ? 'Редактировать обновление' : 'Добавить обновление'}</Modal.Title>
+          <Modal.Header
+              closeButton
+              className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+          >
+            <Modal.Title>
+              {editingUpdate ? 'Редактировать обновление' : 'Добавить обновление'}
+            </Modal.Title>
           </Modal.Header>
+
           <Formik
               initialValues={{ content: editingUpdate?.content || '' }}
               validationSchema={updateSchema}
@@ -763,7 +924,7 @@ export const ProjectPage: React.FC = () => {
                 handleChange,
                 handleBlur,
                 handleSubmit,
-                isSubmitting
+                isSubmitting,
               }) => (
                 <Form onSubmit={handleSubmit}>
                   <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
@@ -795,7 +956,11 @@ export const ProjectPage: React.FC = () => {
                       Отмена
                     </Button>
                     <Button type="submit" variant="primary" disabled={isSubmitting}>
-                      {isSubmitting ? 'Сохранение...' : editingUpdate ? 'Сохранить' : 'Добавить'}
+                      {isSubmitting
+                          ? 'Сохранение...'
+                          : editingUpdate
+                              ? 'Сохранить'
+                              : 'Добавить'}
                     </Button>
                   </Modal.Footer>
                 </Form>
@@ -803,6 +968,7 @@ export const ProjectPage: React.FC = () => {
           </Formik>
         </Modal>
 
+        {/* ===== Модалка «Добавить/Редактировать отзыв» ===== */}
         <Modal
             show={showReviewModal}
             onHide={() => {
@@ -811,13 +977,19 @@ export const ProjectPage: React.FC = () => {
             }}
             centered
         >
-          <Modal.Header closeButton className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-            <Modal.Title>{editingReview ? 'Изменить отзыв' : 'Написать отзыв'}</Modal.Title>
+          <Modal.Header
+              closeButton
+              className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+          >
+            <Modal.Title>
+              {editingReview ? 'Изменить отзыв' : 'Написать отзыв'}
+            </Modal.Title>
           </Modal.Header>
+
           <Formik
               initialValues={{
                 rating: editingReview?.rating || 5,
-                comment: editingReview?.comment || ''
+                comment: editingReview?.comment || '',
               }}
               validationSchema={reviewSchema}
               onSubmit={handleReviewSubmit}
@@ -830,24 +1002,24 @@ export const ProjectPage: React.FC = () => {
                 handleBlur,
                 handleSubmit,
                 setFieldValue,
-                isSubmitting
+                isSubmitting,
               }) => (
                 <Form onSubmit={handleSubmit}>
                   <Modal.Body className={theme === 'dark' ? 'bg-dark text-light' : ''}>
                     <Form.Group className="mb-3">
                       <Form.Label>Рейтинг</Form.Label>
                       <div className="d-flex gap-2">
-                        {Array.from({ length: 5 }).map((_, index) => (
+                        {Array.from({ length: 5 }).map((_v, idx) => (
                             <Button
-                                key={index}
+                                key={idx}
                                 variant="link"
                                 className="p-0"
-                                onClick={() => setFieldValue('rating', index + 1)}
+                                onClick={() => setFieldValue('rating', idx + 1)}
                             >
                               <Star
                                   size={24}
-                                  className={index < values.rating ? 'text-warning' : 'text-muted'}
-                                  fill={index < values.rating ? 'currentColor' : 'none'}
+                                  className={idx < values.rating ? 'text-warning' : 'text-muted'}
+                                  fill={idx < values.rating ? 'currentColor' : 'none'}
                               />
                             </Button>
                         ))}
