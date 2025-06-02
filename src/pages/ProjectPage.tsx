@@ -35,7 +35,7 @@ import { Footer } from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
-// ===== 1) Интерфейсы DTO, которые возвращаются с бэкенда =====
+// ===== 1) Интерфейсы DTO, возвращающиеся с бэкенда =====
 
 interface Project {
   id: number;
@@ -46,12 +46,12 @@ interface Project {
   collectedAmount: number;
   creator: {
     id: string;
-    name: string;
+    userName: string;
   };
-  categoryName: string;
-  status: string;
+  categoryName: string | null;
+  status: string;       // "0" | "1" | "2" | "3" | "4"
   createdAt: string;
-  averageRating: number;
+  averageRating: number | null;
 }
 
 interface ProjectUpdate {
@@ -78,7 +78,7 @@ interface DonationRecord {
 const updateSchema = Yup.object().shape({
   content: Yup.string()
       .min(10, 'Обновление должно содержать не менее 10 символов')
-      .required('Требуется обновить текст'),
+      .required('Требуется текст'),
 });
 
 const reviewSchema = Yup.object().shape({
@@ -90,6 +90,19 @@ const reviewSchema = Yup.object().shape({
       .min(10, 'Отзыв должен содержать не менее 10 символов')
       .required('Требуется текст отзыва'),
 });
+
+// ===== 3) Функция перевода кода статуса в понятную строку =====
+
+function getStatusLabel(code: string): string {
+  switch (Number(code)) {
+    case 0: return 'Ожидается';
+    case 1: return 'Одобрено';
+    case 2: return 'Отклонено';
+    case 3: return 'Активно';
+    case 4: return 'Завершено';
+    default: return 'Неизвестно';
+  }
+}
 
 export const ProjectPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -103,9 +116,7 @@ export const ProjectPage: React.FC = () => {
 
   const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [editingUpdate, setEditingUpdate] = useState<ProjectUpdate | null>(
-      null
-  );
+  const [editingUpdate, setEditingUpdate] = useState<ProjectUpdate | null>(null);
 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -122,10 +133,11 @@ export const ProjectPage: React.FC = () => {
     config: { duration: 300 },
   });
 
+  // Проверяем, является ли текущий пользователь владельцем проекта:
   const isProjectCreator = project?.creator.id === user?.id;
   const canManageUpdates = user?.role === 'ADMIN' || isProjectCreator;
   const canManageReviews = user?.role === 'ADMIN';
-  const hasUserReviewed = reviews.some((r) => r.userName === user?.name);
+  const hasUserReviewed = reviews.some(r => r.userName === user?.userName);
 
   useEffect(() => {
     const loadProjectData = async () => {
@@ -133,10 +145,10 @@ export const ProjectPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // 1. Загрузка информации о проекте
+      // 1. Загрузка основной информации о проекте
       try {
-        const projectResponse = await projectsApi.getById(Number(id));
-        const p = projectResponse.data;
+        const resp = await projectsApi.getById(Number(id));
+        const p = resp.data;
         setProject({
           id: p.id,
           title: p.title,
@@ -144,11 +156,14 @@ export const ProjectPage: React.FC = () => {
           mediaFiles: p.mediaFiles,
           goalAmount: p.goalAmount,
           collectedAmount: p.collectedAmount,
-          creator: { id: p.creator.id, name: p.creator.name },
-          categoryName: p.categoryName || 'Без категории',
+          creator: {
+            id: p.creator.id,
+            userName: p.creator.userName
+          },
+          categoryName: p.categoryName, // может быть null
           status: p.status,
           createdAt: p.createdAt,
-          averageRating: p.averageRating ?? 0,
+          averageRating: p.averageRating
         });
       } catch (err) {
         console.error('Проект не найден или ошибка сети:', err);
@@ -159,17 +174,16 @@ export const ProjectPage: React.FC = () => {
 
       // 2. Загрузка отзывов
       try {
-        const reviewsResponse = await reviewsApi.getByProject(Number(id));
+        const reviewsResp = await reviewsApi.getByProject(Number(id));
         setReviews(
-            reviewsResponse.data.map((r) => ({
+            reviewsResp.data.map(r => ({
               id: r.id,
               rating: r.rating,
               comment: r.comment,
-              userName: r.userName,
+              userName: r.userName
             }))
         );
       } catch (err) {
-        // Если 404 → просто пустой список
         if ((err as any).response?.status === 404) {
           setReviews([]);
         } else {
@@ -180,12 +194,12 @@ export const ProjectPage: React.FC = () => {
 
       // 3. Загрузка обновлений
       try {
-        const updatesResponse = await updatesApi.getByProject(Number(id));
+        const updatesResp = await updatesApi.getByProject(Number(id));
         setUpdates(
-            updatesResponse.data.map((u) => ({
+            updatesResp.data.map(u => ({
               id: u.id,
               content: u.content,
-              createdAt: u.createdAt,
+              createdAt: u.createdAt
             }))
         );
       } catch (err) {
@@ -197,32 +211,31 @@ export const ProjectPage: React.FC = () => {
         }
       }
 
-      // 4. Загрузка пожертвований:
+      // 4. Загрузка пожертвований (если админ или создатель)
       try {
         if (user?.role === 'ADMIN') {
-          const donationsResponse = await donationsApi.adminGetForProject(Number(id));
+          const donateResp = await donationsApi.adminGetForProject(Number(id));
           setDonations(
-              donationsResponse.data.map((d) => ({
+              donateResp.data.map(d => ({
                 userName: d.userName,
                 amount: d.amount,
-                donateAt: d.donateAt,
+                donateAt: d.donateAt
               }))
           );
         } else if (isProjectCreator) {
-          const donationsResponse = await donationsApi.getForCreatorProject(Number(id));
+          const donateResp = await donationsApi.getForCreatorProject(Number(id));
           setDonations(
-              donationsResponse.data.map((d) => ({
+              donateResp.data.map(d => ({
                 userName: d.userName,
                 amount: d.amount,
-                donateAt: d.donateAt,
+                donateAt: d.donateAt
               }))
           );
         }
       } catch (err) {
-        if ((err as any).response?.status === 404) {
-          setDonations([]);
-        } else if ((err as any).response?.status === 403) {
-          // Forbidden для владельца (без AdminPolicy) может прийти, игнорируем и показывает пустой список
+        const status = (err as any).response?.status;
+        if (status === 404 || status === 403) {
+          // 404 → нет пожертвований, 403 → нет доступа (но мы — не админ → можем игнорировать)
           setDonations([]);
         } else {
           console.error('Ошибка загрузки пожертвований:', err);
@@ -236,7 +249,7 @@ export const ProjectPage: React.FC = () => {
     loadProjectData();
   }, [id, user, isProjectCreator]);
 
-  // ===== Пожертвовать =====
+  // ===== Функция «Пожертвовать» =====
   const handleDonate = async (amount: number) => {
     if (!id) return;
     try {
@@ -246,28 +259,26 @@ export const ProjectPage: React.FC = () => {
       }
       await donationsApi.create(Number(id), amount);
 
-      setProject((prev) =>
-          prev ? { ...prev, collectedAmount: prev.collectedAmount + amount } : null
+      setProject(prev => prev
+          ? { ...prev, collectedAmount: prev.collectedAmount + amount }
+          : null
       );
 
+      // Обновляем список пожертвований:
       if (user.role === 'ADMIN') {
         const resp = await donationsApi.adminGetForProject(Number(id));
-        setDonations(
-            resp.data.map((d) => ({
-              userName: d.userName,
-              amount: d.amount,
-              donateAt: d.donateAt,
-            }))
-        );
+        setDonations(resp.data.map(d => ({
+          userName: d.userName,
+          amount: d.amount,
+          donateAt: d.donateAt
+        })));
       } else if (isProjectCreator) {
         const resp = await donationsApi.getForCreatorProject(Number(id));
-        setDonations(
-            resp.data.map((d) => ({
-              userName: d.userName,
-              amount: d.amount,
-              donateAt: d.donateAt,
-            }))
-        );
+        setDonations(resp.data.map(d => ({
+          userName: d.userName,
+          amount: d.amount,
+          donateAt: d.donateAt
+        })));
       }
 
       setShowDonateModal(false);
@@ -277,7 +288,7 @@ export const ProjectPage: React.FC = () => {
     }
   };
 
-  // ===== Создание/Редактирование обновления =====
+  // ===== Создание / Редактирование обновления =====
   const handleUpdateSubmit = async (
       values: { content: string },
       helpers: FormikHelpers<{ content: string }>
@@ -288,28 +299,30 @@ export const ProjectPage: React.FC = () => {
         navigate('/login');
         return;
       }
-
+      // Если редактируем существующее
       if (editingUpdate) {
         await updatesApi.update(editingUpdate.id, {
           content: values.content,
-          projectId: Number(id),
+          projectId: Number(id)
         });
-        setUpdates((prev) =>
-            prev.map((u) =>
-                u.id === editingUpdate.id ? { ...u, content: values.content } : u
+        setUpdates(prev =>
+            prev.map(u => u.id === editingUpdate.id
+                ? { ...u, content: values.content }
+                : u
             )
         );
       } else {
-        const response = await updatesApi.create({
+        // Иначе создаём новое
+        const resp = await updatesApi.create({
           content: values.content,
-          projectId: Number(id),
+          projectId: Number(id)
         });
-        const newUpdate: ProjectUpdate = {
-          id: response.data.id,
+        const newU: ProjectUpdate = {
+          id: resp.data.id,
           content: values.content,
-          createdAt: new Date().toISOString(),
+          createdAt: new Date().toISOString()
         };
-        setUpdates((prev) => [newUpdate, ...prev]);
+        setUpdates(prev => [newU, ...prev]);
       }
 
       setShowUpdateModal(false);
@@ -321,7 +334,7 @@ export const ProjectPage: React.FC = () => {
     }
   };
 
-  // ===== Создание/Редактирование отзыва =====
+  // ===== Создание / Редактирование отзыва =====
   const handleReviewSubmit = async (
       values: { rating: number; comment: string },
       helpers: FormikHelpers<{ rating: number; comment: string }>
@@ -332,47 +345,44 @@ export const ProjectPage: React.FC = () => {
         navigate('/login');
         return;
       }
-
       if (editingReview) {
         await reviewsApi.update(editingReview.id, {
           rating: values.rating,
-          comment: values.comment,
+          comment: values.comment
         });
-        setReviews((prev) =>
-            prev.map((r) =>
+        setReviews(prev =>
+            prev.map(r =>
                 r.id === editingReview.id
                     ? { ...r, rating: values.rating, comment: values.comment }
                     : r
             )
         );
       } else {
-        const response = await reviewsApi.create({
+        const resp = await reviewsApi.create({
           projectId: Number(id),
           rating: values.rating,
-          comment: values.comment,
+          comment: values.comment
         });
-        const newReview: Review = {
-          id: response.data.id,
+        const newR: Review = {
+          id: resp.data.id,
           rating: values.rating,
           comment: values.comment,
-          userName: user.name || 'Пользователь',
+          userName: user.userName || 'Пользователь'
         };
-        setReviews((prev) => [newReview, ...prev]);
+        setReviews(prev => [newR, ...prev]);
       }
-
-      // Пересчёт рейтинга на клиенте
+      // Пересчитаем средний рейтинг на клиенте
       if (project) {
         const sumRatings =
-            reviews.reduce((sum, r) => sum + r.rating, 0) +
-            (editingReview ? 0 : values.rating) -
-            (editingReview ? editingReview.rating : 0);
+            reviews.reduce((sum, r) => sum + r.rating, 0)
+            + (editingReview ? values.rating - editingReview.rating : values.rating);
         const count = editingReview ? reviews.length : reviews.length + 1;
         const newAvg = count > 0 ? sumRatings / count : 0;
-        setProject((prev) =>
-            prev ? { ...prev, averageRating: newAvg } : null
+        setProject(prev => prev
+            ? { ...prev, averageRating: newAvg }
+            : null
         );
       }
-
       setShowReviewModal(false);
       setEditingReview(null);
       helpers.resetForm();
@@ -392,7 +402,7 @@ export const ProjectPage: React.FC = () => {
       }
       if (window.confirm('Уверены, что хотите удалить это обновление?')) {
         await updatesApi.delete(updateId);
-        setUpdates((prev) => prev.filter((u) => u.id !== updateId));
+        setUpdates(prev => prev.filter(u => u.id !== updateId));
       }
     } catch (err) {
       console.error('Ошибка при удалении обновления:', err);
@@ -410,18 +420,18 @@ export const ProjectPage: React.FC = () => {
       }
       if (window.confirm('Уверены, что хотите удалить этот отзыв?')) {
         await reviewsApi.delete(reviewId);
-
-        const rToDelete = reviews.find((r) => r.id === reviewId);
+        const rToDelete = reviews.find(r => r.id === reviewId);
         if (rToDelete && project) {
+          const sumAll = reviews.reduce((sum, r) => sum + r.rating, 0);
           const newCount = reviews.length - 1;
-          const sumWithout =
-              reviews.reduce((sum, r) => sum + r.rating, 0) - rToDelete.rating;
-          const newAvg = newCount > 0 ? sumWithout / newCount : 0;
-          setProject((prev) =>
-              prev ? { ...prev, averageRating: newAvg } : null
+          const newSum = sumAll - (rToDelete.rating);
+          const newAvg = newCount > 0 ? newSum / newCount : 0;
+          setProject(prev => prev
+              ? { ...prev, averageRating: newAvg }
+              : null
           );
         }
-        setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+        setReviews(prev => prev.filter(r => r.id !== reviewId));
       }
     } catch (err) {
       console.error('Ошибка при удалении отзыва:', err);
@@ -481,12 +491,14 @@ export const ProjectPage: React.FC = () => {
                 {project.title}
               </h1>
               <div className="d-flex align-items-center gap-2 mb-3">
-                <Badge bg="primary">{project.categoryName}</Badge>
-                <Badge bg="success">{project.status}</Badge>
+                <Badge bg="primary">
+                  {project.categoryName || 'Без категории'}
+                </Badge>
+                <Badge bg="success">{getStatusLabel(project.status)}</Badge>
                 <div className="ms-2 d-flex align-items-center">
                   <Star className="text-warning" size={18} />
                   <span className="ms-1">
-                  {project.averageRating.toFixed(1)}
+                  {(project.averageRating ?? 0).toFixed(1)}
                 </span>
                   <span className="ms-1 text-muted">({totalReviews} отзывов)</span>
                 </div>
@@ -498,7 +510,7 @@ export const ProjectPage: React.FC = () => {
                           theme === 'dark' ? 'text-light' : 'text-primary'
                       }`}
                   >
-                    {project.creator.name}
+                    {project.creator.userName}
                   </Link>
                 </div>
               </div>
@@ -568,14 +580,14 @@ export const ProjectPage: React.FC = () => {
                 >
                   <Card.Body>
                     <h4 className="mb-3">
-                      $ {project.collectedAmount.toLocaleString()}
+                      $ {(project.collectedAmount).toLocaleString()}
                     </h4>
                     <p
                         className={`mb-1 ${
                             theme === 'dark' ? 'text-light-50' : 'text-muted'
                         }`}
                     >
-                      собрано из $ {project.goalAmount.toLocaleString()}
+                      собрано из $ {(project.goalAmount).toLocaleString()}
                     </p>
                     <ProgressBar now={progress} className="mb-4" />
 
@@ -647,12 +659,12 @@ export const ProjectPage: React.FC = () => {
                                       key={idx}
                                       size={20}
                                       className={
-                                        idx < Math.round(project.averageRating)
+                                        idx < Math.round(project.averageRating ?? 0)
                                             ? 'text-warning'
                                             : 'text-muted'
                                       }
                                       fill={
-                                        idx < Math.round(project.averageRating)
+                                        idx < Math.round(project.averageRating ?? 0)
                                             ? 'currentColor'
                                             : 'none'
                                       }
@@ -660,14 +672,17 @@ export const ProjectPage: React.FC = () => {
                               ))}
                             </div>
                             <span className="fs-5 fw-bold me-2">
-                            {project.averageRating.toFixed(1)}
+                            {(project.averageRating ?? 0).toFixed(1)}
                           </span>
                             <span className="text-muted">({totalReviews} отзывов)</span>
                           </div>
                         </div>
+
                         {user && !hasUserReviewed && !isProjectCreator && (
                             <Button
-                                variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+                                variant={
+                                  theme === 'dark' ? 'outline-light' : 'outline-primary'
+                                }
                                 onClick={() => {
                                   setEditingReview(null);
                                   setShowReviewModal(true);
@@ -678,7 +693,7 @@ export const ProjectPage: React.FC = () => {
                         )}
                       </div>
 
-                      {reviews.map((r) => (
+                      {reviews.map(r => (
                           <Card
                               key={r.id}
                               className={`mb-3 ${
@@ -706,17 +721,18 @@ export const ProjectPage: React.FC = () => {
                                       ))}
                                     </div>
                                     <small
-                                        className={theme === 'dark'
-                                            ? 'text-light-50'
-                                            : 'text-muted'}
+                                        className={
+                                          theme === 'dark' ? 'text-light-50' : 'text-muted'
+                                        }
                                     >
                                       от {r.userName}
                                     </small>
                                   </div>
                                 </div>
-                                {(canManageReviews || r.userName === user?.name) && (
+
+                                {(canManageReviews || r.userName === user?.userName) && (
                                     <div>
-                                      {r.userName === user?.name && (
+                                      {r.userName === user?.userName && (
                                           <Button
                                               variant="link"
                                               className="p-0 me-3"
@@ -766,7 +782,9 @@ export const ProjectPage: React.FC = () => {
                         <h5 className="mb-0">Обновления проекта</h5>
                         {canManageUpdates && (
                             <Button
-                                variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+                                variant={
+                                  theme === 'dark' ? 'outline-light' : 'outline-primary'
+                                }
                                 onClick={() => {
                                   setEditingUpdate(null);
                                   setShowUpdateModal(true);
@@ -777,7 +795,7 @@ export const ProjectPage: React.FC = () => {
                         )}
                       </div>
 
-                      {updates.map((u) => (
+                      {updates.map(u => (
                           <Card
                               key={u.id}
                               className={`mb-3 ${
@@ -849,7 +867,7 @@ export const ProjectPage: React.FC = () => {
                           >
                             <thead>
                             <tr>
-                              <th>Донатер</th>
+                              <th>Донатёр</th>
                               <th>Сумма</th>
                               <th>Дата</th>
                             </tr>
@@ -911,7 +929,6 @@ export const ProjectPage: React.FC = () => {
               {editingUpdate ? 'Редактировать обновление' : 'Добавить обновление'}
             </Modal.Title>
           </Modal.Header>
-
           <Formik
               initialValues={{ content: editingUpdate?.content || '' }}
               validationSchema={updateSchema}
@@ -956,11 +973,7 @@ export const ProjectPage: React.FC = () => {
                       Отмена
                     </Button>
                     <Button type="submit" variant="primary" disabled={isSubmitting}>
-                      {isSubmitting
-                          ? 'Сохранение...'
-                          : editingUpdate
-                              ? 'Сохранить'
-                              : 'Добавить'}
+                      {isSubmitting ? 'Сохранение...' : editingUpdate ? 'Сохранить' : 'Добавить'}
                     </Button>
                   </Modal.Footer>
                 </Form>
@@ -985,7 +998,6 @@ export const ProjectPage: React.FC = () => {
               {editingReview ? 'Изменить отзыв' : 'Написать отзыв'}
             </Modal.Title>
           </Modal.Header>
-
           <Formik
               initialValues={{
                 rating: editingReview?.rating || 5,
