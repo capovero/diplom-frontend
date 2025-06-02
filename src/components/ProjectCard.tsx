@@ -1,9 +1,11 @@
+// src/components/ProjectCard.tsx
+
 import React from 'react';
 import { Card, ProgressBar, Badge, Button } from 'react-bootstrap';
 import { useSpring, animated } from 'react-spring';
 import { Link } from 'react-router-dom';
 import { Star } from 'lucide-react';
-import { Status } from '../types';
+import { Status } from '../types'; // предполагается, что Status — это string|number
 
 interface ProjectCardProps {
     id: number;
@@ -13,14 +15,27 @@ interface ProjectCardProps {
     goalAmount: number;
     collectedAmount: number;
     progress: number;
-    category: string; // Теперь используется в компоненте
-    status: Status;
+    category: string;
+    status: Status;           // "0" | "1" | "2" | "3" | "4" или число
     averageRating?: number | null;
     creator?: {
         id: string;
         name: string;
     };
     onEdit?: () => void;
+}
+
+// Переводим код статуса в понятную строку
+function getStatusLabel(code: Status): string {
+    const num = Number(code);
+    switch (num) {
+        case 0: return 'Ожидается';
+        case 1: return 'Одобрено';
+        case 2: return 'Отклонено';
+        case 3: return 'Активно';
+        case 4: return 'Завершено';
+        default: return 'Неизвестно';
+    }
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
@@ -46,12 +61,15 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
         return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
     };
 
-    const statusVariant = {
-        'Active': 'success',
-        'Completed': 'primary',
-        'Pending': 'warning',
-        'Rejected': 'danger'
-    }[status];
+    const statusText = getStatusLabel(status);
+    const statusVariant: Record<string, string> = {
+        'Активно': 'success',
+        'Завершено': 'primary',
+        'Ожидается': 'warning',
+        'Отклонено': 'danger',
+        'Одобрено': 'info'
+    };
+    const badgeVariant = statusVariant[statusText] || 'secondary';
 
     return (
         <animated.div style={animationProps}>
@@ -63,15 +81,16 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                     className="project-card__image"
                     style={{ height: '200px', objectFit: 'cover' }}
                 />
+
                 <Card.Body className="d-flex flex-column">
                     <div className="d-flex justify-content-between align-items-start mb-3">
                         <Card.Title className="mb-0">{title}</Card.Title>
-                        <Badge bg={statusVariant} pill>
-                            {status}
+                        <Badge bg={badgeVariant} pill>
+                            {statusText}
                         </Badge>
                     </div>
 
-                    {/* Добавляем отображение категории */}
+                    {/* Отображаем категорию */}
                     <div className="mb-2">
                         <Badge bg="info" className="me-2">
                             {category}
@@ -86,14 +105,16 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
                         {averageRating !== undefined && averageRating !== null && (
                             <div className="d-flex align-items-center mb-2">
                                 <Star size={16} className="text-warning me-1" />
-                                <small className="text-muted">{averageRating.toFixed(1)}</small>
+                                <small className="text-muted">
+                                    {averageRating.toFixed(1)}
+                                </small>
                             </div>
                         )}
 
                         {creator && (
                             <div className="mb-2">
                                 <small className="text-muted">
-                                    Автор: {' '}
+                                    Автор:{' '}
                                     <Link
                                         to={`/profile/${creator.id}`}
                                         className="text-decoration-none text-primary"
