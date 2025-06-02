@@ -39,8 +39,8 @@ interface Project extends ApiProject {
 }
 
 interface Donation {
-  id: string;
-  projectId: string;
+  //id: string;
+  //projectId: string;
   projectTitle: string;
   amount: number;
   date: string;
@@ -99,8 +99,8 @@ export const ProfilePage: React.FC = () => {
           try {
             const donationsResponse = await axios.get<Donation[]>('/api/donation/personal-donations');
             setDonations(donationsResponse.data.map(d => ({
-              id: d.id.toString(),
-              projectId: d.projectId.toString(),
+            //  id: d.id.toString(),
+              //projectId: d.projectId.toString(),
               projectTitle: d.projectTitle,
               amount: d.amount,
               date: d.date
@@ -333,15 +333,11 @@ export const ProfilePage: React.FC = () => {
                           <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
                             <Card.Body>
                               <h5 className="mb-4">Ваши пожертвования</h5>
-                              {donations.map(donation => (
-                                  <div key={donation.id} className={`p-3 mb-3 rounded ${theme === 'dark' ? 'bg-secondary-dark' : 'bg-light'}`}>
+                              {donations.map((donation, idx) => (
+                                  <div key={idx} className={`p-3 mb-3 rounded ${theme === 'dark' ? 'bg-secondary-dark' : 'bg-light'}`}>
                                     <div className="d-flex justify-content-between align-items-center">
                                       <div>
-                                        <h6 className="mb-1">
-                                          <Link to={`/project/${donation.projectId}`} className={theme === 'dark' ? 'text-light' : ''}>
-                                            {donation.projectTitle}
-                                          </Link>
-                                        </h6>
+                                        <h6 className="mb-1">{donation.projectTitle}</h6>
                                         <div className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
                                           {new Date(donation.date).toLocaleDateString()}
                                         </div>
@@ -358,17 +354,15 @@ export const ProfilePage: React.FC = () => {
                           <Card className={`text-center py-5 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
                             <Card.Body>
                               <p className={theme === 'dark' ? 'text-light-50 mb-3' : 'text-muted mb-3'}>
-                                Вы еще не сделали ни одного пожертвования
+                                Вы ещё не сделали ни одного пожертвования
                               </p>
-                              <Button
-                                  variant="primary"
-                                  onClick={() => navigate('/')}
-                              >
+                              <Button variant="primary" onClick={() => navigate('/')}>
                                 Изучить проекты
                               </Button>
                             </Card.Body>
                           </Card>
                       )}
+
                     </Tab.Pane>
                   </Tab.Content>
                 </Tab.Container>
