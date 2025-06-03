@@ -8,6 +8,7 @@ export interface UserResponse {
 }
 
 export interface UserProfileResponse extends UserResponse {
+  role: string;
   projects: ProjectResponse[];
 }
 

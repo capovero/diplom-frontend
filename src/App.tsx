@@ -16,6 +16,7 @@ import { ProjectsPage } from './pages/admin/ProjectsPage';
 import { ProjectDetailsPage } from './pages/admin/ProjectDetailsPage';
 import { CategoriesPage } from './pages/admin/CategoriesPage';
 import { useAuth } from './context/AuthContext';
+import { EditProjectPage } from './pages/EditProjectPage';
 
 const AdminRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
   const { user } = useAuth();
@@ -44,8 +45,13 @@ function AppRoutes() {
       <Route path="/project/:id" element={<ProjectPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      
-      {/* Protected User Routes */}
+        <Route
+            path="/edit-project/:id"
+            element={<UserRoute element={<EditProjectPage />} />}
+        />
+
+
+        {/* Protected User Routes */}
       <Route path="/profile/:userId" element={<UserRoute element={<ProfilePage />} />} />
       <Route path="/create-project" element={<UserRoute element={<CreateProjectPage />} />} />
       

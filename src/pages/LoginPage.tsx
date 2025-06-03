@@ -1,11 +1,14 @@
+// src/pages/LoginPage.tsx
+
 import React from 'react';
 import { Container, Form, Button, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { Formik } from 'formik';
+import { Formik, FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import type { AxiosError } from 'axios';
+import { usersApi } from '../services/api';
 
 const loginSchema = Yup.object().shape({
     userName: Yup.string().required('Имя пользователя обязательно'),
@@ -14,25 +17,44 @@ const loginSchema = Yup.object().shape({
 
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { login } = useAuth(); // достаем только login
     const { theme } = useTheme();
 
     return (
         <Container className="py-5">
             <div className="mx-auto" style={{ maxWidth: 500 }}>
-                <h1 className={`text-center mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>Вход</h1>
+                <h1 className={`text-center mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>
+                    Вход
+                </h1>
+
                 <Formik
                     initialValues={{ userName: '', password: '' }}
                     validationSchema={loginSchema}
-                    onSubmit={async (values, { setSubmitting, setStatus }) => {
+                    onSubmit={async (
+                        values,
+                        { setSubmitting, setStatus }: FormikHelpers<{
+                            userName: string;
+                            password: string;
+                        }>
+                    ) => {
                         try {
                             await login(values.userName, values.password);
-                            navigate('/');
+
+                            // сразу после успешного login() надо повторно вызвать getProfile(),
+                            // чтобы узнать роль из ответа бэкенда:
+                            const resp = await usersApi.getProfile();
+                            const role = resp.data.role;
+
+                            if (role === 'ADMIN') {
+                                navigate('/admin');
+                            } else {
+                                navigate('/');
+                            }
                         } catch (error) {
                             const axiosError = error as AxiosError<{ message?: string }>;
                             setStatus(
                                 axiosError.response?.data?.message ||
-                                'Неверные имя пользователя или пароль'
+                                'Неверное имя пользователя или пароль'
                             );
                         } finally {
                             setSubmitting(false);
@@ -66,7 +88,9 @@ export const LoginPage: React.FC = () => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     isInvalid={touched.userName && !!errors.userName}
-                                    className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+                                    className={
+                                        theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {errors.userName}
@@ -82,7 +106,9 @@ export const LoginPage: React.FC = () => {
                                     onChange={handleChange}
                                     onBlur={handleBlur}
                                     isInvalid={touched.password && !!errors.password}
-                                    className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+                                    className={
+                                        theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
+                                    }
                                 />
                                 <Form.Control.Feedback type="invalid">
                                     {errors.password}
@@ -99,7 +125,7 @@ export const LoginPage: React.FC = () => {
                             </Button>
 
                             <div className="text-center">
-                                <Link to="/register" className={`${theme === 'dark' ? 'text-light' : ''}`}>
+                                <Link to="/register" className={theme === 'dark' ? 'text-light' : ''}>
                                     Нет аккаунта? Зарегистрируйтесь
                                 </Link>
                             </div>

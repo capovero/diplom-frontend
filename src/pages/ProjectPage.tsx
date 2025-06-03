@@ -16,7 +16,7 @@ import {
   Nav,
   Table,
   Form,
-  Spinner
+  Spinner,
 } from 'react-bootstrap';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSpring, animated } from 'react-spring';
@@ -27,16 +27,16 @@ import {
   projectsApi,
   reviewsApi,
   donationsApi,
-  updatesApi
+  updatesApi,
 } from '../services/api';
 import { DonationModal } from '../components/DonationModal';
 import { SocialShareButtons } from '../components/SocialShareButtons';
 import { Footer } from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import type { AxiosError } from 'axios';
 
-// ===== 1) Интерфейсы DTO, возвращающиеся с бэкенда =====
-
+// ===== Интерфейсы DTO =====
 interface Project {
   id: number;
   title: string;
@@ -49,7 +49,7 @@ interface Project {
     userName: string;
   };
   categoryName: string | null;
-  status: string;       // "0" | "1" | "2" | "3" | "4"
+  status: string; // "0" | "1" | ... | "4"
   createdAt: string;
   averageRating: number | null;
 }
@@ -73,14 +73,14 @@ interface DonationRecord {
   donateAt: string;
 }
 
-// ===== 2) Схемы валидации =====
-
+// Валидация изменений (обновлений)
 const updateSchema = Yup.object().shape({
   content: Yup.string()
       .min(10, 'Обновление должно содержать не менее 10 символов')
       .required('Требуется текст'),
 });
 
+// Валидация для отзыва
 const reviewSchema = Yup.object().shape({
   rating: Yup.number()
       .min(1, 'Рейтинг должен быть не менее 1')
@@ -91,16 +91,20 @@ const reviewSchema = Yup.object().shape({
       .required('Требуется текст отзыва'),
 });
 
-// ===== 3) Функция перевода кода статуса в понятную строку =====
-
 function getStatusLabel(code: string): string {
   switch (Number(code)) {
-    case 0: return 'Ожидается';
-    case 1: return 'Одобрено';
-    case 2: return 'Отклонено';
-    case 3: return 'Активно';
-    case 4: return 'Завершено';
-    default: return 'Неизвестно';
+    case 0:
+      return 'Ожидается';
+    case 1:
+      return 'Одобрено';
+    case 2:
+      return 'Отклонено';
+    case 3:
+      return 'Активно';
+    case 4:
+      return 'Завершено';
+    default:
+      return 'Неизвестно';
   }
 }
 
@@ -133,11 +137,10 @@ export const ProjectPage: React.FC = () => {
     config: { duration: 300 },
   });
 
-  // Проверяем, является ли текущий пользователь владельцем проекта:
   const isProjectCreator = project?.creator.id === user?.id;
   const canManageUpdates = user?.role === 'ADMIN' || isProjectCreator;
   const canManageReviews = user?.role === 'ADMIN';
-  const hasUserReviewed = reviews.some(r => r.userName === user?.userName);
+  const hasUserReviewed = reviews.some((r) => r.userName === user?.userName);
 
   useEffect(() => {
     const loadProjectData = async () => {
@@ -145,7 +148,7 @@ export const ProjectPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // 1. Загрузка основной информации о проекте
+      // 1. Загрузка проекта
       try {
         const resp = await projectsApi.getById(Number(id));
         const p = resp.data;
@@ -158,14 +161,14 @@ export const ProjectPage: React.FC = () => {
           collectedAmount: p.collectedAmount,
           creator: {
             id: p.creator.id,
-            userName: p.creator.userName
+            userName: p.creator.userName,
           },
-          categoryName: p.categoryName, // может быть null
+          categoryName: p.categoryName,
           status: p.status,
           createdAt: p.createdAt,
-          averageRating: p.averageRating
+          averageRating: p.averageRating,
         });
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Проект не найден или ошибка сети:', err);
         setError('Проект не найден или ошибка сети');
         setLoading(false);
@@ -176,15 +179,16 @@ export const ProjectPage: React.FC = () => {
       try {
         const reviewsResp = await reviewsApi.getByProject(Number(id));
         setReviews(
-            reviewsResp.data.map(r => ({
+            reviewsResp.data.map((r) => ({
               id: r.id,
               rating: r.rating,
               comment: r.comment,
-              userName: r.userName
+              userName: r.userName,
             }))
         );
-      } catch (err) {
-        if ((err as any).response?.status === 404) {
+      } catch (err: unknown) {
+        const axiosErr = err as AxiosError;
+        if (axiosErr.response?.status === 404) {
           setReviews([]);
         } else {
           console.error('Ошибка загрузки отзывов:', err);
@@ -196,14 +200,15 @@ export const ProjectPage: React.FC = () => {
       try {
         const updatesResp = await updatesApi.getByProject(Number(id));
         setUpdates(
-            updatesResp.data.map(u => ({
+            updatesResp.data.map((u) => ({
               id: u.id,
               content: u.content,
-              createdAt: u.createdAt
+              createdAt: u.createdAt,
             }))
         );
-      } catch (err) {
-        if ((err as any).response?.status === 404) {
+      } catch (err: unknown) {
+        const axiosErr = err as AxiosError;
+        if (axiosErr.response?.status === 404) {
           setUpdates([]);
         } else {
           console.error('Ошибка загрузки обновлений:', err);
@@ -216,26 +221,26 @@ export const ProjectPage: React.FC = () => {
         if (user?.role === 'ADMIN') {
           const donateResp = await donationsApi.adminGetForProject(Number(id));
           setDonations(
-              donateResp.data.map(d => ({
+              donateResp.data.map((d) => ({
                 userName: d.userName,
                 amount: d.amount,
-                donateAt: d.donateAt
+                donateAt: d.donateAt,
               }))
           );
         } else if (isProjectCreator) {
           const donateResp = await donationsApi.getForCreatorProject(Number(id));
           setDonations(
-              donateResp.data.map(d => ({
+              donateResp.data.map((d) => ({
                 userName: d.userName,
                 amount: d.amount,
-                donateAt: d.donateAt
+                donateAt: d.donateAt,
               }))
           );
         }
-      } catch (err) {
-        const status = (err as any).response?.status;
+      } catch (err: unknown) {
+        const axiosErr = err as AxiosError;
+        const status = axiosErr.response?.status;
         if (status === 404 || status === 403) {
-          // 404 → нет пожертвований, 403 → нет доступа (но мы — не админ → можем игнорировать)
           setDonations([]);
         } else {
           console.error('Ошибка загрузки пожертвований:', err);
@@ -249,7 +254,6 @@ export const ProjectPage: React.FC = () => {
     loadProjectData();
   }, [id, user, isProjectCreator]);
 
-  // ===== Функция «Пожертвовать» =====
   const handleDonate = async (amount: number) => {
     if (!id) return;
     try {
@@ -259,36 +263,37 @@ export const ProjectPage: React.FC = () => {
       }
       await donationsApi.create(Number(id), amount);
 
-      setProject(prev => prev
-          ? { ...prev, collectedAmount: prev.collectedAmount + amount }
-          : null
+      setProject((prev) =>
+          prev ? { ...prev, collectedAmount: prev.collectedAmount + amount } : null
       );
 
-      // Обновляем список пожертвований:
       if (user.role === 'ADMIN') {
         const resp = await donationsApi.adminGetForProject(Number(id));
-        setDonations(resp.data.map(d => ({
-          userName: d.userName,
-          amount: d.amount,
-          donateAt: d.donateAt
-        })));
+        setDonations(
+            resp.data.map((d) => ({
+              userName: d.userName,
+              amount: d.amount,
+              donateAt: d.donateAt,
+            }))
+        );
       } else if (isProjectCreator) {
         const resp = await donationsApi.getForCreatorProject(Number(id));
-        setDonations(resp.data.map(d => ({
-          userName: d.userName,
-          amount: d.amount,
-          donateAt: d.donateAt
-        })));
+        setDonations(
+            resp.data.map((d) => ({
+              userName: d.userName,
+              amount: d.amount,
+              donateAt: d.donateAt,
+            }))
+        );
       }
 
       setShowDonateModal(false);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Ошибка при пожертвовании:', err);
       setError('Не удалось выполнить пожертвование');
     }
   };
 
-  // ===== Создание / Редактирование обновления =====
   const handleUpdateSubmit = async (
       values: { content: string },
       helpers: FormikHelpers<{ content: string }>
@@ -299,42 +304,39 @@ export const ProjectPage: React.FC = () => {
         navigate('/login');
         return;
       }
-      // Если редактируем существующее
+
       if (editingUpdate) {
         await updatesApi.update(editingUpdate.id, {
           content: values.content,
-          projectId: Number(id)
+          projectId: Number(id),
         });
-        setUpdates(prev =>
-            prev.map(u => u.id === editingUpdate.id
-                ? { ...u, content: values.content }
-                : u
+        setUpdates((prev) =>
+            prev.map((u) =>
+                u.id === editingUpdate.id ? { ...u, content: values.content } : u
             )
         );
       } else {
-        // Иначе создаём новое
         const resp = await updatesApi.create({
           content: values.content,
-          projectId: Number(id)
+          projectId: Number(id),
         });
         const newU: ProjectUpdate = {
           id: resp.data.id,
           content: values.content,
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         };
-        setUpdates(prev => [newU, ...prev]);
+        setUpdates((prev) => [newU, ...prev]);
       }
 
       setShowUpdateModal(false);
       setEditingUpdate(null);
       helpers.resetForm();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Ошибка при сохранении обновления:', err);
       setError('Не удалось сохранить обновление');
     }
   };
 
-  // ===== Создание / Редактирование отзыва =====
   const handleReviewSubmit = async (
       values: { rating: number; comment: string },
       helpers: FormikHelpers<{ rating: number; comment: string }>
@@ -345,13 +347,14 @@ export const ProjectPage: React.FC = () => {
         navigate('/login');
         return;
       }
+
       if (editingReview) {
         await reviewsApi.update(editingReview.id, {
           rating: values.rating,
-          comment: values.comment
+          comment: values.comment,
         });
-        setReviews(prev =>
-            prev.map(r =>
+        setReviews((prev) =>
+            prev.map((r) =>
                 r.id === editingReview.id
                     ? { ...r, rating: values.rating, comment: values.comment }
                     : r
@@ -361,38 +364,37 @@ export const ProjectPage: React.FC = () => {
         const resp = await reviewsApi.create({
           projectId: Number(id),
           rating: values.rating,
-          comment: values.comment
+          comment: values.comment,
         });
         const newR: Review = {
           id: resp.data.id,
           rating: values.rating,
           comment: values.comment,
-          userName: user.userName || 'Пользователь'
+          userName: user.userName,
         };
-        setReviews(prev => [newR, ...prev]);
+        setReviews((prev) => [newR, ...prev]);
       }
-      // Пересчитаем средний рейтинг на клиенте
+
       if (project) {
         const sumRatings =
-            reviews.reduce((sum, r) => sum + r.rating, 0)
-            + (editingReview ? values.rating - editingReview.rating : values.rating);
+            reviews.reduce((sum, r) => sum + r.rating, 0) +
+            (editingReview ? values.rating - editingReview.rating : values.rating);
         const count = editingReview ? reviews.length : reviews.length + 1;
         const newAvg = count > 0 ? sumRatings / count : 0;
-        setProject(prev => prev
-            ? { ...prev, averageRating: newAvg }
-            : null
+        setProject((prev) =>
+            prev ? { ...prev, averageRating: newAvg } : null
         );
       }
+
       setShowReviewModal(false);
       setEditingReview(null);
       helpers.resetForm();
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Ошибка при сохранении отзыва:', err);
       setError('Не удалось сохранить отзыв');
     }
   };
 
-  // ===== Удаление обновления =====
   const handleDeleteUpdate = async (updateId: number) => {
     if (!id) return;
     try {
@@ -402,15 +404,14 @@ export const ProjectPage: React.FC = () => {
       }
       if (window.confirm('Уверены, что хотите удалить это обновление?')) {
         await updatesApi.delete(updateId);
-        setUpdates(prev => prev.filter(u => u.id !== updateId));
+        setUpdates((prev) => prev.filter((u) => u.id !== updateId));
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Ошибка при удалении обновления:', err);
       setError('Не удалось удалить обновление');
     }
   };
 
-  // ===== Удаление отзыва =====
   const handleDeleteReview = async (reviewId: number) => {
     if (!id) return;
     try {
@@ -420,20 +421,19 @@ export const ProjectPage: React.FC = () => {
       }
       if (window.confirm('Уверены, что хотите удалить этот отзыв?')) {
         await reviewsApi.delete(reviewId);
-        const rToDelete = reviews.find(r => r.id === reviewId);
+        const rToDelete = reviews.find((r) => r.id === reviewId);
         if (rToDelete && project) {
           const sumAll = reviews.reduce((sum, r) => sum + r.rating, 0);
           const newCount = reviews.length - 1;
-          const newSum = sumAll - (rToDelete.rating);
+          const newSum = sumAll - rToDelete.rating;
           const newAvg = newCount > 0 ? newSum / newCount : 0;
-          setProject(prev => prev
-              ? { ...prev, averageRating: newAvg }
-              : null
+          setProject((prev) =>
+              prev ? { ...prev, averageRating: newAvg } : null
           );
         }
-        setReviews(prev => prev.filter(r => r.id !== reviewId));
+        setReviews((prev) => prev.filter((r) => r.id !== reviewId));
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Ошибка при удалении отзыва:', err);
       setError('Не удалось удалить отзыв');
     }
@@ -571,7 +571,7 @@ export const ProjectPage: React.FC = () => {
                 </Card>
               </Col>
 
-              {/* ===== Справа: Инфо о сборе и Donate ===== */}
+              {/* ===== Справа: Инфо и Donate ===== */}
               <Col lg={4}>
                 <Card
                     className={`mb-4 ${
@@ -580,14 +580,14 @@ export const ProjectPage: React.FC = () => {
                 >
                   <Card.Body>
                     <h4 className="mb-3">
-                      $ {(project.collectedAmount).toLocaleString()}
+                      $ {project.collectedAmount.toLocaleString()}
                     </h4>
                     <p
                         className={`mb-1 ${
                             theme === 'dark' ? 'text-light-50' : 'text-muted'
                         }`}
                     >
-                      собрано из $ {(project.goalAmount).toLocaleString()}
+                      собрано из $ {project.goalAmount.toLocaleString()}
                     </p>
                     <ProgressBar now={progress} className="mb-4" />
 
@@ -600,8 +600,9 @@ export const ProjectPage: React.FC = () => {
                       Поддержите этот проект
                     </Button>
 
+                    {/* Передаём projectId как строку, чтобы избежать TS2322 */}
                     <SocialShareButtons
-                        projectId={project.id}
+                        projectId={project.id.toString()}
                         projectTitle={project.title}
                     />
                   </Card.Body>
@@ -609,7 +610,7 @@ export const ProjectPage: React.FC = () => {
               </Col>
             </Row>
 
-            {/* ===== Вкладки: Отзывы / Обновления / Пожертвования ===== */}
+            {/* ===== Вкладки ===== */}
             <Tab.Container defaultActiveKey="reviews">
               <Nav variant="tabs" className="mb-4">
                 <Nav.Item>
@@ -659,12 +660,14 @@ export const ProjectPage: React.FC = () => {
                                       key={idx}
                                       size={20}
                                       className={
-                                        idx < Math.round(project.averageRating ?? 0)
+                                        idx <
+                                        Math.round(project.averageRating ?? 0)
                                             ? 'text-warning'
                                             : 'text-muted'
                                       }
                                       fill={
-                                        idx < Math.round(project.averageRating ?? 0)
+                                        idx <
+                                        Math.round(project.averageRating ?? 0)
                                             ? 'currentColor'
                                             : 'none'
                                       }
@@ -674,11 +677,14 @@ export const ProjectPage: React.FC = () => {
                             <span className="fs-5 fw-bold me-2">
                             {(project.averageRating ?? 0).toFixed(1)}
                           </span>
-                            <span className="text-muted">({totalReviews} отзывов)</span>
+                            <span className="text-muted">
+                            ({totalReviews} отзывов)
+                          </span>
                           </div>
                         </div>
 
-                        {user && !hasUserReviewed && !isProjectCreator && (
+                        {/* Кнопка «Написать отзыв» */}
+                        {user && !hasUserReviewed &&  (
                             <Button
                                 variant={
                                   theme === 'dark' ? 'outline-light' : 'outline-primary'
@@ -693,7 +699,7 @@ export const ProjectPage: React.FC = () => {
                         )}
                       </div>
 
-                      {reviews.map(r => (
+                      {reviews.map((r) => (
                           <Card
                               key={r.id}
                               className={`mb-3 ${
@@ -712,10 +718,14 @@ export const ProjectPage: React.FC = () => {
                                               key={idx2}
                                               size={16}
                                               className={
-                                                idx2 < r.rating ? 'text-warning' : 'text-muted'
+                                                idx2 < r.rating
+                                                    ? 'text-warning'
+                                                    : 'text-muted'
                                               }
                                               fill={
-                                                idx2 < r.rating ? 'currentColor' : 'none'
+                                                idx2 < r.rating
+                                                    ? 'currentColor'
+                                                    : 'none'
                                               }
                                           />
                                       ))}
@@ -730,7 +740,8 @@ export const ProjectPage: React.FC = () => {
                                   </div>
                                 </div>
 
-                                {(canManageReviews || r.userName === user?.userName) && (
+                                {(canManageReviews ||
+                                    r.userName === user?.userName) && (
                                     <div>
                                       {r.userName === user?.userName && (
                                           <Button
@@ -775,7 +786,9 @@ export const ProjectPage: React.FC = () => {
                 {/* ===== Вкладка «Обновления» ===== */}
                 <Tab.Pane eventKey="updates">
                   <Card
-                      className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+                      className={
+                        theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
+                      }
                   >
                     <Card.Body>
                       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -795,7 +808,7 @@ export const ProjectPage: React.FC = () => {
                         )}
                       </div>
 
-                      {updates.map(u => (
+                      {updates.map((u) => (
                           <Card
                               key={u.id}
                               className={`mb-3 ${
@@ -808,7 +821,9 @@ export const ProjectPage: React.FC = () => {
                               <div className="d-flex justify-content-between mb-2">
                                 <div>
                                   <small
-                                      className={theme === 'dark' ? 'text-light-50' : 'text-muted'}
+                                      className={
+                                        theme === 'dark' ? 'text-light-50' : 'text-muted'
+                                      }
                                   >
                                     {new Date(u.createdAt).toLocaleDateString()}
                                   </small>
@@ -853,11 +868,13 @@ export const ProjectPage: React.FC = () => {
                   </Card>
                 </Tab.Pane>
 
-                {/* ===== Вкладка «Пожертвования» (для владельца/админа) ===== */}
+                {/* ===== Вкладка «Пожертвования» ===== */}
                 {(user?.role === 'ADMIN' || isProjectCreator) && (
                     <Tab.Pane eventKey="donations">
                       <Card
-                          className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+                          className={
+                            theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
+                          }
                       >
                         <Card.Body>
                           <h5 className="mb-4">Пожертвования проекта</h5>

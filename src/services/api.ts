@@ -78,6 +78,9 @@ export const projectsApi = {
 
     updateStatus: (id: number, status: string) =>
         axios.patch<void>(`/api/projects/${id}/status`, { status }),
+
+    update: (id: number, formData: FormData) =>
+        +    axios.put<ProjectResponse>(`/api/projects/${id}`, formData),
 };
 
 // ==================== Donations API ====================
