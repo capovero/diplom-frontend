@@ -1,25 +1,40 @@
+// src/pages/admin/UserDetailsPage.tsx
+
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Table } from 'react-bootstrap';
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Table,
+  Spinner,
+  Alert
+} from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { usersApi, donationsApi } from '../../services/api';
+import type {
+  AdminProfileResponse,
+  ProjectResponse,
+  DonationUser
+} from '../../types/index.ts';
 
 interface UserDetails {
   id: string;
-  name: string;
+  userName: string;
   email: string;
-  createdAt: string;
   projects: Array<{
-    id: string;
+    id: number;
     title: string;
     status: string;
     createdAt: string;
   }>;
   donations: Array<{
-    id: string;
-    amount: number;
     projectTitle: string;
-    createdAt: string;
+    amount: number;
+    donateAt: string;
   }>;
 }
 
@@ -27,158 +42,202 @@ export const UserDetailsPage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const [user, setUser] = useState<UserDetails | null>(null);
+
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    // GET /api/admin/users/${userId}
-    const mockUser: UserDetails = {
-      id: userId || '',
-      name: 'John Doe',
-      email: 'john@example.com',
-      createdAt: '2024-01-01T00:00:00Z',
-      projects: [
-        {
-          id: 'project-1',
-          title: 'Project 1',
-          status: 'Active',
-          createdAt: '2024-02-01T00:00:00Z'
-        },
-        {
-          id: 'project-2',
-          title: 'Project 2',
-          status: 'Completed',
-          createdAt: '2024-02-15T00:00:00Z'
+    const fetchUserDetails = async () => {
+      if (!userId) return;
+      setLoading(true);
+      setError(null);
+
+      try {
+        // 1) Получаем профиль (админ видит все проекты)
+        const respUser = await usersApi.getById(userId);
+        const data: AdminProfileResponse = respUser.data;
+
+        // data.projects: ProjectResponse[]
+        const mappedProjects = data.projects.map((p: ProjectResponse) => ({
+          id: p.id,
+          title: p.title,
+          status: p.status,
+          createdAt: p.createdAt
+        }));
+
+        // 2) Получаем донаты этого пользователя (админ-эндпоинт)
+        let mappedDonations: DonationUser[] = [];
+        try {
+          const respDon = await donationsApi.adminGetForUser(userId);
+          mappedDonations = respDon.data;
+        } catch (donErr: any) {
+          // Если 404 “Нет донатов” — просто оставляем пустой массив.
+          if (donErr.response?.status !== 404) {
+            console.error('Ошибка загрузки пожертвований:', donErr);
+          }
         }
-      ],
-      donations: [
-        {
-          id: 'donation-1',
-          amount: 100,
-          projectTitle: 'Project 3',
-          createdAt: '2024-02-10T00:00:00Z'
-        },
-        {
-          id: 'donation-2',
-          amount: 50,
-          projectTitle: 'Project 4',
-          createdAt: '2024-02-20T00:00:00Z'
-        }
-      ]
+
+        setUserDetails({
+          id: data.id,
+          userName: data.userName,
+          email: data.email,
+          projects: mappedProjects,
+          donations: mappedDonations.map(d => ({
+            projectTitle: d.projectTitle,
+            amount: d.amount,
+            donateAt: d.donateAt
+          }))
+        });
+      } catch (err) {
+        console.error('Ошибка загрузки данных пользователя:', err);
+        setError('Не удалось загрузить информацию о пользователе');
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setUser(mockUser);
-    setLoading(false);
+    fetchUserDetails();
   }, [userId]);
 
   if (loading) {
     return (
-      <Container className="py-4">
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Загрузка...</span>
+        <Container className="py-4">
+          <div className="text-center">
+            <Spinner animation="border" role="status" />
           </div>
-        </div>
-      </Container>
+        </Container>
     );
   }
 
-  if (!user) {
+  if (error) {
     return (
-      <Container className="py-4">
-        <div className="text-center">Пользователь не найден</div>
-      </Container>
+        <Container className="py-4">
+          <Alert variant="danger">{error}</Alert>
+        </Container>
+    );
+  }
+
+  if (!userDetails) {
+    return (
+        <Container className="py-4">
+          <div className="text-center">Пользователь не найден</div>
+        </Container>
     );
   }
 
   return (
-    <Container fluid className="py-4">
-      <div className="d-flex align-items-center mb-4">
-        <Button
-          variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
-          className="me-3"
-          onClick={() => navigate('/admin/users')}
-        >
-          <ArrowLeft size={20} />
-        </Button>
-        <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>Подробности о пользователе</h2>
-      </div>
+      <Container fluid className="py-4">
+        <div className="d-flex align-items-center mb-4">
+          <Button
+              variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+              className="me-3"
+              onClick={() => navigate('/admin/users')}
+          >
+            <ArrowLeft size={20} />
+          </Button>
+          <h2 className={`mb-0 ${theme === 'dark' ? 'text-light' : ''}`}>
+            Подробности о пользователе
+          </h2>
+        </div>
 
-      <Row className="g-4">
-        <Col lg={4}>
-          <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-            <Card.Body>
-              <h5 className="card-title mb-4">Основная информация</h5>
-              <dl>
-                <dt>ID Пользователя</dt>
-                <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>{user.id}</dd>
-                
-                <dt>Имя</dt>
-                <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>{user.name}</dd>
-                
-                <dt>Почта</dt>
-                <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>{user.email}</dd>
+        <Row className="g-4">
+          {/* — Левый столбец с основной информацией — */}
+          <Col lg={4}>
+            <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+              <Card.Body>
+                <h5 className="card-title mb-4">Основная информация</h5>
+                <dl>
+                  <dt>ID Пользователя</dt>
+                  <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
+                    {userDetails.id}
+                  </dd>
 
-              </dl>
-            </Card.Body>
-          </Card>
-        </Col>
+                  <dt>Имя</dt>
+                  <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
+                    {userDetails.userName}
+                  </dd>
 
-        <Col lg={8}>
-          <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
-            <Card.Body>
-              <h5 className="card-title mb-4">Проекты</h5>
-              <Table responsive className={theme === 'dark' ? 'table-dark' : ''}>
-                <thead>
+                  <dt>Почта</dt>
+                  <dd className={theme === 'dark' ? 'text-light-50' : 'text-muted'}>
+                    {userDetails.email}
+                  </dd>
+                </dl>
+              </Card.Body>
+            </Card>
+          </Col>
+
+          {/* — Правый столбец с таблицами — */}
+          <Col lg={8}>
+            {/* таблица «Проекты» */}
+            <Card className={`mb-4 ${theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}`}>
+              <Card.Body>
+                <h5 className="card-title mb-4">Проекты пользователя</h5>
+                <Table responsive className={theme === 'dark' ? 'table-dark' : ''}>
+                  <thead>
                   <tr>
                     <th>ID</th>
                     <th>Название</th>
                     <th>Статус</th>
                     <th>Создан</th>
                   </tr>
-                </thead>
-                <tbody>
-                  {user.projects.map(project => (
-                    <tr key={project.id}>
-                      <td>{project.id}</td>
-                      <td>{project.title}</td>
-                      <td>{project.status}</td>
-                      <td>{new Date(project.createdAt).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
+                  </thead>
+                  <tbody>
+                  {userDetails.projects.length > 0 ? (
+                      userDetails.projects.map(proj => (
+                          <tr key={proj.id}>
+                            <td>{proj.id}</td>
+                            <td>{proj.title}</td>
+                            <td>{proj.status}</td>
+                            <td>{new Date(proj.createdAt).toLocaleDateString()}</td>
+                          </tr>
+                      ))
+                  ) : (
+                      <tr>
+                        <td colSpan={4} className="text-center">
+                          Нет проектов
+                        </td>
+                      </tr>
+                  )}
+                  </tbody>
+                </Table>
+              </Card.Body>
+            </Card>
 
-          <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
-            <Card.Body>
-              <h5 className="card-title mb-4">Пожертвования</h5>
-              <Table responsive className={theme === 'dark' ? 'table-dark' : ''}>
-                <thead>
+            {/* таблица «Пожертвования» */}
+            <Card className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}>
+              <Card.Body>
+                <h5 className="card-title mb-4">Пожертвования пользователя</h5>
+                <Table responsive className={theme === 'dark' ? 'table-dark' : ''}>
+                  <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Project</th>
-                    <th>Amount</th>
-                    <th>Date</th>
+                    <th>Проект</th>
+                    <th>Сумма</th>
+                    <th>Дата</th>
                   </tr>
-                </thead>
-                <tbody>
-                  {user.donations.map(donation => (
-                    <tr key={donation.id}>
-                      <td>{donation.id}</td>
-                      <td>{donation.projectTitle}</td>
-                      <td>${donation.amount}</td>
-                      <td>{new Date(donation.createdAt).toLocaleDateString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+                  </thead>
+                  <tbody>
+                  {userDetails.donations.length > 0 ? (
+                      userDetails.donations.map((don, idx) => (
+                          <tr key={idx}>
+                            <td>{don.projectTitle}</td>
+                            <td>${don.amount.toLocaleString()}</td>
+                            <td>{new Date(don.donateAt).toLocaleDateString()}</td>
+                          </tr>
+                      ))
+                  ) : (
+                      <tr>
+                        <td colSpan={3} className="text-center">
+                          Нет пожертвований
+                        </td>
+                      </tr>
+                  )}
+                  </tbody>
+                </Table>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
   );
 };
