@@ -10,7 +10,7 @@ import {
     ReviewResponse,
     CategoryDto,
     UpdateResponse
-} from '../types';
+} from '../types/index.ts';
 
 // We no longer need a baseURL here: axios will call "/api/..." which Vite proxies to :5209
 axios.defaults.withCredentials = true;
@@ -133,22 +133,30 @@ export const reviewsApi = {
 
 // ==================== Categories API ====================
 export const categoriesApi = {
+    // получить список всех категорий
     getAll: () =>
-        axios.get<CategoryDto[]>('/api/categories/getAll', { withCredentials: false }),
+        axios.get<CategoryDto[]>('/api/categories/getAll'),
 
+    // создать новую категорию (JSON: { name })
     create: (name: string) =>
-        axios.post<CategoryDto>('/api/categories/create', name),
+        axios.post<CategoryDto>(
+            '/api/categories/create',
+            { name }   // теперь отправляем { "name": "..." }
+
+        ),
+
 
     update: (id: number, name: string) =>
-        axios.put<CategoryDto>('/api/categories/update', name, {
-            params: { id },
-        }),
+        axios.put<CategoryDto>(
+            `/api/categories/update?id=${id}`,
+            { name }
+        ),
 
+    // удалить категорию по id
     delete: (id: number) =>
-        axios.delete<void>('/api/categories/delete', {
-            params: { id },
-        }),
+        axios.delete<void>(`/api/categories/delete?id=${id}`)
 };
+
 
 // ==================== Updates API ====================
 export const updatesApi = {
