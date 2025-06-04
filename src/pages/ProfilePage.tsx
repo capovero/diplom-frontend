@@ -23,17 +23,24 @@ import { Formik } from 'formik';
 import * as Yup from 'yup';
 import axios from 'axios';
 
+//
 // ======= Типы и интерфейсы =======
+//
+
+// Статусы проекта (точно повторяем имена enum-а на сервере)
 type Status = 'Pending' | 'Active' | 'Completed' | 'Rejected';
 
-interface UserProfile {
+// DTO, который возвращает бэкенд: профиль + список проектов
+interface UserProfileResponse {
   id: string;
   userName: string;
   email: string;
-  role: string; // “USER” или “ADMIN”
+  role: string;           // "USER" или "ADMIN"
+  projects: ProjectResponseDto[];
 }
 
-interface ApiProject {
+// DTO проекта (как пришёл с сервера)
+interface ProjectResponseDto {
   id: number;
   title: string;
   description: string;
@@ -44,20 +51,30 @@ interface ApiProject {
   status: Status;
   mediaFiles: string[];
   averageRating: number | null;
+  // (creator не нужен в этой странице)
 }
 
-interface Project extends ApiProject {
-  progress: number;
+// Локальная модель для отображения карточки
+interface Project {
+  id: number;
+  title: string;
+  description: string;
+  progress: number;    // (collectedAmount / goalAmount) * 100
   category: string;
   image: string;
+  goalAmount: number;
+  collectedAmount: number;
+  status: Status;
 }
 
+// DTO «личных пожертвований»
 interface Donation {
   projectTitle: string;
   amount: number;
   date: string;
 }
 
+// Валидатор для редактирования профиля
 const profileSchema = Yup.object().shape({
   userName: Yup.string()
       .min(2, 'Имя должно быть не менее 2 символов')
@@ -73,59 +90,58 @@ export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { theme } = useTheme();
 
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<UserProfileResponse | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
+  // true, если мы зашли на «свой» профиль
   const isOwnProfile = user?.id === userId;
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndProjects = async () => {
       try {
-        let profileData: UserProfile;
+        let profileData: UserProfileResponse;
 
-        // 1) Загрузка профиля
+        // 1) Загрузка «пользовательской» информации
         if (isOwnProfile) {
-          if (user?.role === 'ADMIN') {
-            // «Mock-админ» не имеет сессионной куки, поэтому просто берём из контекста
-            profileData = user;
-          } else {
-            const resp = await axios.get<UserProfile>('/api/users/me');
-            profileData = resp.data;
-          }
+          // Для «своего» профиля всегда вызываем /api/users/me (он возвращает AdminProfileDto под капотом)
+          const resp = await axios.get<UserProfileResponse>('/api/users/me');
+          profileData = resp.data;
         } else {
-          const resp = await axios.get<UserProfile>(`/api/users/${userId}`);
+          // Для чужого: /api/users/{userId}
+          const resp = await axios.get<UserProfileResponse>(
+              `/api/users/${userId}`
+          );
           profileData = resp.data;
         }
+
         setProfile(profileData);
 
-        // 2) Загрузка проектов пользователя
-        let projectsResp;
-        if (isOwnProfile) {
-          if (profileData.role === 'ADMIN') {
-            // админ видит свои проекты через общий поиск по userId
-            projectsResp = await axios.get<ApiProject[]>(`/api/projects?userId=${profileData.id}`);
-          } else {
-            // обычный пользователь — «мои проекты»
-            projectsResp = await axios.get<ApiProject[]>('/api/projects/my');
-          }
-        } else {
-          // смотрим профиль другого пользователя
-          projectsResp = await axios.get<ApiProject[]>(`/api/projects?userId=${userId}`);
-        }
+        // 2) В ответе уже есть profileData.projects (AdminProfileDto или UserProfileDto),
+        //    в зависимости от того, кто запрашивал и чей профиль.
+        const rawProjects = profileData.projects || [];
 
-        const processedProjects = projectsResp.data.map((proj) => ({
-          ...proj,
-          progress: (proj.collectedAmount / proj.goalAmount) * 100,
+        // 3) Преобразуем ProjectResponseDto[] → локальный Project[]
+        const processed: Project[] = rawProjects.map((proj) => ({
+          id: proj.id,
+          title: proj.title,
+          description: proj.description,
+          progress:
+              proj.goalAmount > 0
+                  ? (proj.collectedAmount / proj.goalAmount) * 100
+                  : 0,
           category: proj.categoryName || 'Без категории',
           image: proj.mediaFiles[0] || '/placeholder-image.jpg',
+          goalAmount: proj.goalAmount,
+          collectedAmount: proj.collectedAmount,
+          status: proj.status,
         }));
-        setProjects(processedProjects);
+        setProjects(processed);
 
-        // 3) Личные пожертвования (только если свой профиль)
+        // 4) Если это «свой» профиль, загружаем ещё «Мои пожертвования»
         if (isOwnProfile) {
           try {
             const donateResp = await axios.get<
@@ -150,19 +166,19 @@ export const ProfilePage: React.FC = () => {
           }
         }
       } catch (err) {
-        console.error('Ошибка загрузки:', err);
-        setError(
+        console.error('Ошибка загрузки профиля:', err);
+        const msg =
             axios.isAxiosError(err)
                 ? err.response?.data?.message || 'Не удалось загрузить данные'
-                : 'Неизвестная ошибка'
-        );
+                : 'Неизвестная ошибка';
+        setError(msg);
       } finally {
         setLoading(false);
       }
     };
 
     if (!authLoading) {
-      fetchProfile().catch((err) => {
+      fetchProfileAndProjects().catch((err) => {
         console.error('Unhandled error:', err);
         setError('Произошла непредвиденная ошибка');
         setLoading(false);
@@ -170,15 +186,17 @@ export const ProfilePage: React.FC = () => {
     }
   }, [userId, isOwnProfile, authLoading, user]);
 
+  // Обновление своего профиля
   const handleUpdateProfile = async (values: {
     userName: string;
     email: string;
   }) => {
     try {
-      const resp = await axios.put<UserProfile>('/api/users', values);
+      const resp = await axios.put<UserProfileResponse>('/api/users', values);
       setProfile((prev) => ({
         ...prev!,
-        ...resp.data,
+        userName: resp.data.userName,
+        email: resp.data.email,
       }));
       setIsEditing(false);
     } catch (err) {
@@ -187,6 +205,7 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
+  // Удаление своего проекта
   const handleDeleteProject = async (projectId: number) => {
     if (!window.confirm('Уверены, что хотите удалить проект?')) return;
     try {
@@ -230,7 +249,7 @@ export const ProfilePage: React.FC = () => {
       <div className="d-flex flex-column min-vh-100">
         <main className="flex-grow-1">
           <Container className="py-5">
-            {/* ====== Карточка профиля / редактирование ====== */}
+            {/* ====== Карточка профиля / режим редактирования ====== */}
             <Card
                 className={`mb-4 ${
                     theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
@@ -347,7 +366,9 @@ export const ProfilePage: React.FC = () => {
                             </Button>
                             <Button
                                 variant={
-                                  theme === 'dark' ? 'outline-light' : 'outline-primary'
+                                  theme === 'dark'
+                                      ? 'outline-light'
+                                      : 'outline-primary'
                                 }
                                 onClick={() => setIsEditing(true)}
                             >
@@ -360,8 +381,9 @@ export const ProfilePage: React.FC = () => {
               </Card.Body>
             </Card>
 
-            {/* ====== Вкладки: “Мои проекты” и “Мои пожертвования” ====== */}
+            {/* ====== Вкладки ====== */}
             {isOwnProfile ? (
+                // ─────────── «Свой» профиль ───────────
                 <Tab.Container id="profile-tabs" defaultActiveKey="projects">
                   <Nav variant="tabs" className="mb-4">
                     <Nav.Item>
@@ -383,7 +405,7 @@ export const ProfilePage: React.FC = () => {
                   </Nav>
 
                   <Tab.Content>
-                    {/* ====== Вкладка «Мои проекты» ====== */}
+                    {/* ───── Вкладка «Мои проекты» ───── */}
                     <Tab.Pane eventKey="projects">
                       <Row xs={1} md={2} lg={3} className="g-4">
                         {projects.map((project) => (
@@ -399,12 +421,10 @@ export const ProfilePage: React.FC = () => {
                                     image={project.image}
                                     goalAmount={project.goalAmount}
                                     collectedAmount={project.collectedAmount}
-                                    // Теперь «Редактировать» у любого проекта на своём профиле
                                     onEdit={() =>
                                         navigate(`/edit-project/${project.id}`)
                                     }
                                 />
-
                                 <Button
                                     variant="danger"
                                     size="sm"
@@ -424,7 +444,7 @@ export const ProfilePage: React.FC = () => {
                       </Row>
                     </Tab.Pane>
 
-                    {/* ====== Вкладка «Мои пожертвования» ====== */}
+                    {/* ───── Вкладка «Мои пожертвования» ───── */}
                     <Tab.Pane eventKey="donations">
                       {donations.length > 0 ? (
                           <Card
@@ -448,9 +468,7 @@ export const ProfilePage: React.FC = () => {
                                         <h6 className="mb-1">{don.projectTitle}</h6>
                                         <div
                                             className={
-                                              theme === 'dark'
-                                                  ? 'text-light-50'
-                                                  : 'text-muted'
+                                              theme === 'dark' ? 'text-light-50' : 'text-muted'
                                             }
                                         >
                                           {new Date(don.date).toLocaleDateString()}
@@ -482,7 +500,10 @@ export const ProfilePage: React.FC = () => {
                               >
                                 Вы ещё не сделали ни одного пожертвования
                               </p>
-                              <Button variant="primary" onClick={() => navigate('/')}>
+                              <Button
+                                  variant="primary"
+                                  onClick={() => navigate('/')}
+                              >
                                 Изучить проекты
                               </Button>
                             </Card.Body>
@@ -492,37 +513,31 @@ export const ProfilePage: React.FC = () => {
                   </Tab.Content>
                 </Tab.Container>
             ) : (
+                // ─────────── «Чужой» профиль ───────────
                 <>
-                  <h3
-                      className={`mb-4 ${
-                          theme === 'dark' ? 'text-light' : ''
-                      }`}
-                  >
+                  <h3 className={`mb-4 ${theme === 'dark' ? 'text-light' : ''}`}>
+                    {/* Если просматриваем чужого пользователя-админа, он уже попал в ToAdminProfileDto → все его проекты;
+                    иначе, ToUserProfileDto вернул только Active } */}
                     {profile.role === 'ADMIN'
                         ? 'Все проекты пользователя'
                         : 'Активные проекты'}
                   </h3>
                   <Row xs={1} md={2} lg={3} className="g-4">
-                    {projects
-                        .filter(
-                            (proj) =>
-                                profile.role === 'ADMIN' || proj.status === 'Active'
-                        )
-                        .map((proj) => (
-                            <Col key={proj.id}>
-                              <ProjectCard
-                                  id={proj.id}
-                                  title={proj.title}
-                                  description={proj.description}
-                                  progress={proj.progress}
-                                  category={proj.category}
-                                  status={proj.status}
-                                  image={proj.image}
-                                  goalAmount={proj.goalAmount}
-                                  collectedAmount={proj.collectedAmount}
-                              />
-                            </Col>
-                        ))}
+                    {projects.map((proj) => (
+                        <Col key={proj.id}>
+                          <ProjectCard
+                              id={proj.id}
+                              title={proj.title}
+                              description={proj.description}
+                              progress={proj.progress}
+                              category={proj.category}
+                              status={proj.status}
+                              image={proj.image}
+                              goalAmount={proj.goalAmount}
+                              collectedAmount={proj.collectedAmount}
+                          />
+                        </Col>
+                    ))}
                   </Row>
                 </>
             )}

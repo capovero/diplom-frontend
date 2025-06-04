@@ -137,7 +137,8 @@ export const ProjectPage: React.FC = () => {
     config: { duration: 300 },
   });
 
-  const isProjectCreator = project?.creator.id === user?.id;
+  // Теперь учитываем, что user может быть null
+  const isProjectCreator = Boolean(user && project?.creator.id === user.id);
   const canManageUpdates = user?.role === 'ADMIN' || isProjectCreator;
   const canManageReviews = user?.role === 'ADMIN';
   const hasUserReviewed = reviews.some((r) => r.userName === user?.userName);
@@ -216,7 +217,7 @@ export const ProjectPage: React.FC = () => {
         }
       }
 
-      // 4. Загрузка пожертвований (если админ или создатель)
+      // 4. Загрузка пожертвований (только если user определён и он админ или создатель)
       try {
         if (user?.role === 'ADMIN') {
           const donateResp = await donationsApi.adminGetForProject(Number(id));
@@ -227,7 +228,7 @@ export const ProjectPage: React.FC = () => {
                 donateAt: d.donateAt,
               }))
           );
-        } else if (isProjectCreator) {
+        } else if (user && isProjectCreator) {
           const donateResp = await donationsApi.getForCreatorProject(Number(id));
           setDonations(
               donateResp.data.map((d) => ({
@@ -236,6 +237,9 @@ export const ProjectPage: React.FC = () => {
                 donateAt: d.donateAt,
               }))
           );
+        } else {
+          // Если пользователь не авторизован или не имеет прав — оставляем пустой список
+          setDonations([]);
         }
       } catch (err: unknown) {
         const axiosErr = err as AxiosError;
@@ -684,10 +688,12 @@ export const ProjectPage: React.FC = () => {
                         </div>
 
                         {/* Кнопка «Написать отзыв» */}
-                        {user && !hasUserReviewed &&  (
+                        {user && !hasUserReviewed && (
                             <Button
                                 variant={
-                                  theme === 'dark' ? 'outline-light' : 'outline-primary'
+                                  theme === 'dark'
+                                      ? 'outline-light'
+                                      : 'outline-primary'
                                 }
                                 onClick={() => {
                                   setEditingReview(null);
@@ -732,7 +738,9 @@ export const ProjectPage: React.FC = () => {
                                     </div>
                                     <small
                                         className={
-                                          theme === 'dark' ? 'text-light-50' : 'text-muted'
+                                          theme === 'dark'
+                                              ? 'text-light-50'
+                                              : 'text-muted'
                                         }
                                     >
                                       от {r.userName}
@@ -796,7 +804,9 @@ export const ProjectPage: React.FC = () => {
                         {canManageUpdates && (
                             <Button
                                 variant={
-                                  theme === 'dark' ? 'outline-light' : 'outline-primary'
+                                  theme === 'dark'
+                                      ? 'outline-light'
+                                      : 'outline-primary'
                                 }
                                 onClick={() => {
                                   setEditingUpdate(null);
@@ -822,7 +832,9 @@ export const ProjectPage: React.FC = () => {
                                 <div>
                                   <small
                                       className={
-                                        theme === 'dark' ? 'text-light-50' : 'text-muted'
+                                        theme === 'dark'
+                                            ? 'text-light-50'
+                                            : 'text-muted'
                                       }
                                   >
                                     {new Date(u.createdAt).toLocaleDateString()}
@@ -873,7 +885,9 @@ export const ProjectPage: React.FC = () => {
                     <Tab.Pane eventKey="donations">
                       <Card
                           className={
-                            theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
+                            theme === 'dark'
+                                ? 'bg-dark text-light border-secondary'
+                                : ''
                           }
                       >
                         <Card.Body>
