@@ -1,43 +1,49 @@
 // src/components/Header.tsx
 
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Navbar, Container, Form, Nav, Button } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, Home, Sun, Moon, User, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { debounce } from '../utils/debounce';
 
 export const Header: React.FC = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [searchTerm, setSearchTerm] = useState('');
 
-  const debouncedSearch = useCallback(
-      debounce((term: string) => {
-        // TODO: здесь можно вызывать поиск: navigate(`/search?query=${term}&page=1`)
-        console.log('Searching for:', term);
-      }, 300),
-      []
-  );
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    debouncedSearch(value);
-  };
-
   const isAdminRoute = location.pathname.startsWith('/admin');
-
-  // Проверяем: если у бэкенда есть real-role= 'ADMIN', или если имя user.userName==='administrator',
-  // показываем кнопку “Панель администратора”.
   const isActuallyAdmin =
       user?.role === 'ADMIN' || user?.userName?.toLowerCase() === 'administrator';
 
+  // Обработчик при клике на кнопку поиска или при Enter
+  const doSearch = () => {
+    const trimmed = searchTerm.trim();
+    if (trimmed.length > 0) {
+      navigate(`/search?query=${encodeURIComponent(trimmed)}&page=1`);
+    } else {
+      // Если пусто — вернуться на главную
+      navigate('/');
+    }
+  };
+
+  // При нажатии Enter в input
+  const onKeyDownHandler = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      doSearch();
+    }
+  };
+
   return (
-      <Navbar bg={theme === 'dark' ? 'dark' : 'white'} expand="lg" className="header">
+      <Navbar
+          bg={theme === 'dark' ? 'dark' : 'white'}
+          expand="lg"
+          className="header"
+      >
         <Container>
           <Navbar.Brand
               as={Link}
@@ -46,19 +52,34 @@ export const Header: React.FC = () => {
           >
             <Home className="me-2" />
             ProjectFlow
-            {isAdminRoute && <span className="ms-2 text-warning">(Режим администратора)</span>}
+            {isAdminRoute && (
+                <span className="ms-2 text-warning">(Режим администратора)</span>
+            )}
           </Navbar.Brand>
 
           {!isAdminRoute && (
-              <Form className="d-flex header__search mx-auto">
+              <Form
+                  className="d-flex header__search mx-auto"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    doSearch();
+                  }}
+              >
                 <Form.Control
                     type="search"
                     placeholder="Поиск проектов..."
                     value={searchTerm}
-                    onChange={handleSearch}
-                    className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={onKeyDownHandler}
+                    className={
+                      theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
+                    }
                 />
-                <Button variant={theme === 'dark' ? 'outline-light' : 'outline-primary'} className="ms-2">
+                <Button
+                    variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+                    className="ms-2"
+                    onClick={doSearch}
+                >
                   <Search size={20} />
                 </Button>
               </Form>
@@ -67,7 +88,6 @@ export const Header: React.FC = () => {
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="ms-auto align-items-center">
-              {/* Переключатель темы */}
               <Button
                   variant={theme === 'dark' ? 'outline-light' : 'outline-dark'}
                   className="me-3"
@@ -78,7 +98,6 @@ export const Header: React.FC = () => {
 
               {user ? (
                   <>
-                    {/* Кнопка "Панель администратора" */}
                     {isActuallyAdmin && (
                         <Button
                             variant={theme === 'dark' ? 'outline-warning' : 'warning'}
@@ -113,7 +132,7 @@ export const Header: React.FC = () => {
                     <Button
                         variant="link"
                         className={theme === 'dark' ? 'text-light' : 'text-dark'}
-                        onClick={logout}
+                        onClick={() => logout()}
                     >
                       Выйти
                     </Button>

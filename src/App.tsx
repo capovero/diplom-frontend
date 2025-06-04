@@ -50,6 +50,9 @@ function AppRoutes() {
             element={<UserRoute element={<EditProjectPage />} />}
         />
 
+        <Route path="/" element={<Home />} />
+        <Route path="/search" element={<Home />} />
+
 
         {/* Protected User Routes */}
       <Route path="/profile/:userId" element={<UserRoute element={<ProfilePage />} />} />

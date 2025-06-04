@@ -1,14 +1,26 @@
 // src/pages/Home.tsx
 
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Button, Card, Spinner, Alert } from 'react-bootstrap';
+import {
+  Container,
+  Row,
+  Col,
+  Button,
+  Card,
+  Spinner,
+  Alert,
+} from 'react-bootstrap';
+import { useTheme } from '../context/ThemeContext';
 import { ProjectCard } from '../components/ProjectCard';
 import { Pagination } from '../components/Pagination';
 import { Footer } from '../components/Footer';
 import { CrowdfundingInfo } from '../components/CrowdfundingInfo';
-import { useTheme } from '../context/ThemeContext';
 import { projectsApi, categoriesApi } from '../services/api';
-import type { CategoryDto, ProjectPaginationResponse } from '../types/index.ts';
+import type {
+  CategoryDto,
+  ProjectPaginationResponse,
+} from '../types/index.ts';
+import { useSearchParams } from 'react-router-dom';
 
 interface DisplayProject {
   id: string;
@@ -25,10 +37,17 @@ interface DisplayProject {
 export const Home: React.FC = () => {
   const { theme } = useTheme();
 
+  // Получаем из URL: ?query=…&page=…
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [projects, setProjects] = useState<DisplayProject[]>([]);
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+
+  const [currentPage, setCurrentPage] = useState<number>(() => {
+    const pageParam = searchParams.get('page');
+    return pageParam ? Number(pageParam) : 1;
+  });
   const [totalPages, setTotalPages] = useState(1);
   const [showInfo, setShowInfo] = useState(false);
 
@@ -39,12 +58,11 @@ export const Home: React.FC = () => {
 
   const projectsPerPage = 6;
 
-  // Загрузка списка категорий
+  // — Загрузить категории
   useEffect(() => {
     const fetchCategories = async () => {
       setLoadingCategories(true);
       setErrorCategories(null);
-
       try {
         const resp = await categoriesApi.getAll();
         setCategories(resp.data);
@@ -55,43 +73,52 @@ export const Home: React.FC = () => {
         setLoadingCategories(false);
       }
     };
-
     fetchCategories();
   }, []);
 
-  // Загрузка списка проектов (с учётом пагинации и фильтра по категории)
+  // Если URL-страница (searchParams) меняется извне, синхронизируем currentPage
+  useEffect(() => {
+    const pageParam = searchParams.get('page');
+    if (pageParam) {
+      setCurrentPage(Number(pageParam));
+    } else {
+      setCurrentPage(1);
+    }
+  }, [searchParams]);
+
+  // — Загрузить проекты каждый раз, когда меняются: currentPage, selectedCategoryId или searchParams
   useEffect(() => {
     const fetchProjects = async () => {
       setLoadingProjects(true);
       setErrorProjects(null);
 
       try {
-        // Формируем объект фильтра для API
+        // 1) Формируем объект фильтра
         const filter: {
           title?: string;
           categoryId?: number;
         } = {};
 
+        const titleQuery = searchParams.get('query');
+        if (titleQuery && titleQuery.trim() !== '') {
+          filter.title = titleQuery.trim();
+        }
         if (selectedCategoryId !== null) {
           filter.categoryId = selectedCategoryId;
         }
 
-        // Вызываем эндпоинт
+        // 2) Вызываем API: /api/projects?Title=…&CategoryId=…&pageNumber=…&pageSize=…
         const resp = await projectsApi.getAll(
             filter,
             currentPage,
             projectsPerPage
         );
-
         const paginationData: ProjectPaginationResponse = resp.data;
 
-        // Преобразуем каждый ProjectResponse в локальный DisplayProject
+        // 3) Мапим ProjectResponseDto → DisplayProject
         const mapped = paginationData.data.map((p) => {
-          const firstImage = p.mediaFiles.length > 0
-              ? p.mediaFiles[0]
-              : '/placeholder-image.jpg';
-
-          // Вычисляем прогресс (collectedAmount / goalAmount) * 100
+          const firstImage =
+              p.mediaFiles.length > 0 ? p.mediaFiles[0] : '/placeholder-image.jpg';
           const prog =
               p.goalAmount > 0
                   ? Number(((p.collectedAmount / p.goalAmount) * 100).toFixed(2))
@@ -112,7 +139,7 @@ export const Home: React.FC = () => {
 
         setProjects(mapped);
 
-        // Пересчитываем общее число страниц
+        // 4) Вычисляем общее число страниц
         const totalPagesCalc = Math.ceil(
             paginationData.totalRecords / projectsPerPage
         );
@@ -126,16 +153,24 @@ export const Home: React.FC = () => {
     };
 
     fetchProjects();
-  }, [currentPage, selectedCategoryId]);
+  }, [currentPage, selectedCategoryId, searchParams]);
 
+  // При клике на другую страницу пагинации
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo(0, 0);
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('page', page.toString());
+    setSearchParams(newParams);
   };
 
+  // При выборе категории — сбрасываем страницу на 1 и перезаписываем ?page=1
   const handleCategorySelect = (categoryId: number | null) => {
     setSelectedCategoryId(categoryId);
     setCurrentPage(1);
+    const newParams = new URLSearchParams(searchParams.toString());
+    newParams.set('page', '1');
+    setSearchParams(newParams);
   };
 
   return (
@@ -146,9 +181,7 @@ export const Home: React.FC = () => {
               <Col>
                 <Card
                     className={
-                      theme === 'dark'
-                          ? 'bg-dark text-light border-secondary'
-                          : ''
+                      theme === 'dark' ? 'bg-dark text-light border-secondary' : ''
                     }
                 >
                   <Card.Body>
@@ -156,28 +189,21 @@ export const Home: React.FC = () => {
                       <h2 className="mb-0">Добро пожаловать на ProjectFlow</h2>
                       <Button
                           variant={
-                            theme === 'dark'
-                                ? 'outline-light'
-                                : 'outline-primary'
+                            theme === 'dark' ? 'outline-light' : 'outline-primary'
                           }
                           onClick={() => setShowInfo(!showInfo)}
                       >
-                        {showInfo
-                            ? 'Скрыть информацию'
-                            : 'О краудфандинге'}
+                        {showInfo ? 'Скрыть информацию' : 'О краудфандинге'}
                       </Button>
                     </div>
                     <p
                         className={
-                          theme === 'dark'
-                              ? 'text-light-50'
-                              : 'text-muted'
+                          theme === 'dark' ? 'text-light-50' : 'text-muted'
                         }
                     >
-                      Откройте для себя инновационные проекты и поддержите
-                      авторов в воплощении их идей в жизнь.
+                      Откройте для себя инновационные проекты и поддержите авторов
+                      в воплощении их идей в жизнь.
                     </p>
-
                     {showInfo && <CrowdfundingInfo />}
                   </Card.Body>
                 </Card>
@@ -187,9 +213,7 @@ export const Home: React.FC = () => {
             <div className="d-flex flex-wrap gap-2 mb-4">
               <Button
                   variant={
-                    selectedCategoryId === null
-                        ? 'primary'
-                        : 'outline-primary'
+                    selectedCategoryId === null ? 'primary' : 'outline-primary'
                   }
                   onClick={() => handleCategorySelect(null)}
               >
@@ -199,22 +223,18 @@ export const Home: React.FC = () => {
               {loadingCategories && (
                   <Spinner animation="border" size="sm" className="ms-2" />
               )}
-
               {!loadingCategories &&
                   categories.map((cat) => (
                       <Button
                           key={cat.id}
                           variant={
-                            selectedCategoryId === cat.id
-                                ? 'primary'
-                                : 'outline-primary'
+                            selectedCategoryId === cat.id ? 'primary' : 'outline-primary'
                           }
                           onClick={() => handleCategorySelect(cat.id)}
                       >
                         {cat.name}
                       </Button>
                   ))}
-
               {errorCategories && (
                   <Alert variant="danger" className="mt-2">
                     {errorCategories}
@@ -234,12 +254,7 @@ export const Home: React.FC = () => {
                 </Alert>
             ) : (
                 <>
-                  <Row
-                      xs={1}
-                      md={2}
-                      lg={3}
-                      className="g-4 projects-grid"
-                  >
+                  <Row xs={1} md={2} lg={3} className="g-4 projects-grid">
                     {projects.map((project) => (
                         <Col key={project.id}>
                           <ProjectCard {...project} />
@@ -255,17 +270,15 @@ export const Home: React.FC = () => {
                 </>
             )}
 
-            {!loadingProjects &&
-                !errorProjects &&
-                totalPages > 1 && (
-                    <div className="mt-4">
-                      <Pagination
-                          currentPage={currentPage}
-                          totalPages={totalPages}
-                          onPageChange={handlePageChange}
-                      />
-                    </div>
-                )}
+            {!loadingProjects && !errorProjects && totalPages > 1 && (
+                <div className="mt-4">
+                  <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                  />
+                </div>
+            )}
           </Container>
         </main>
         <Footer />
