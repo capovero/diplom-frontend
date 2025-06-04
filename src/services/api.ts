@@ -60,12 +60,13 @@ export const projectsApi = {
                 'filter.Status': filter?.status,
                 pageNumber,
                 pageSize,
-            },
-            withCredentials: false,
+            }
         }),
 
     getById: (id: number) =>
-        axios.get<ProjectResponse>(`/api/projects/${id}`, { withCredentials: false }),
+        axios.get<ProjectResponse>(`/api/projects/${id}`,
+            // { withCredentials: false }
+        ),
 
     create: (data: FormData) =>
         axios.post<ProjectResponse>('/api/projects', data),
@@ -76,8 +77,8 @@ export const projectsApi = {
     delete: (id: number) =>
         axios.delete<void>(`/api/projects/${id}`),
 
-    updateStatus: (id: number, status: string) =>
-        axios.patch<void>(`/api/projects/${id}/status`, { status }),
+    updateStatus: (id: number, dto: { status: number }) =>
+        axios.patch<void>(`/api/projects/${id}/status`, dto),
 
     update: (id: number, formData: FormData) =>
         +    axios.put<ProjectResponse>(`/api/projects/${id}`, formData),

@@ -1,5 +1,3 @@
-// src/components/Header.tsx
-
 import React, { useState } from 'react';
 import { Navbar, Container, Form, Nav, Button } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -16,8 +14,10 @@ export const Header: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const isAdminRoute = location.pathname.startsWith('/admin');
+  // Делать сравнение роли нечувствительным к регистру:
   const isActuallyAdmin =
-      user?.role === 'ADMIN' || user?.userName?.toLowerCase() === 'administrator';
+      user?.role?.toLowerCase() === 'admin' ||
+      user?.userName?.toLowerCase() === 'administrator';
 
   // Обработчик при клике на кнопку поиска или при Enter
   const doSearch = () => {
@@ -25,7 +25,6 @@ export const Header: React.FC = () => {
     if (trimmed.length > 0) {
       navigate(`/search?query=${encodeURIComponent(trimmed)}&page=1`);
     } else {
-      // Если пусто — вернуться на главную
       navigate('/');
     }
   };
@@ -112,14 +111,18 @@ export const Header: React.FC = () => {
                     {!isAdminRoute && (
                         <>
                           <Button
-                              variant={theme === 'dark' ? 'outline-light' : 'outline-primary'}
+                              variant={
+                                theme === 'dark' ? 'outline-light' : 'outline-primary'
+                              }
                               className="me-2"
                               onClick={() => navigate('/create-project')}
                           >
                             Создать проект
                           </Button>
                           <Button
-                              variant={theme === 'dark' ? 'outline-light' : 'outline-secondary'}
+                              variant={
+                                theme === 'dark' ? 'outline-light' : 'outline-secondary'
+                              }
                               className="me-2"
                               onClick={() => navigate(`/profile/${user.id}`)}
                           >
